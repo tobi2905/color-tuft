@@ -206,9 +206,9 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Builds: `suggestCount(peaks: Peak[]): number`: the `distinct` peaks (see 3.1) with share ≥ 0.2%, clamped to 2..16. Same colours `findPalette` picks first, so the suggested count returns exactly the art's colours; a gradient counts once.
   - Tests: `triforce` gives 2; `sixColours` gives 6.
   - Commit: `feat(core): suggested colour count`
-- [ ] **3.4 Assign the fine colour map.**
+- [X] **3.4 Assign the fine colour map.**
   - Files: `src/core/quantize/assign.ts`, `test/core/quantize/assign.test.ts`.
-  - Builds: `assignLabels(img: ImageGrid, palette: OKLab[], mmPerPx: number): LabelMap`: nearest palette colour per pixel; alpha < 128 becomes `NO_LABEL`. Two resolutions: sampling runs on a coarse grid (`COARSE_MM_PER_PX = 5`), assignment on the fine one (`FINE_MM_PER_PX = 1`).
+  - Builds: `assignLabels(img: ImageGrid, palette: OKLab[], mmPerPx: number): LabelMap`: nearest palette colour per pixel; alpha < 128 becomes `NO_LABEL`. Two resolutions: colours are found on a random sample of 20,000 pixels (`samplePixels`, fast), assignment runs on every pixel of the fine grid (`FINE_MM_PER_PX = 1`). No coarse shrunken grid: shrinking would blend edges into extra colours (see 3.2).
   - Tests: `triforce` contains only labels 0, 1 and `NO_LABEL`; a `withSoftAlpha` edge pixel with alpha 100 is `NO_LABEL`, alpha 200 gets a colour.
   - Commit: `feat(core): colour map assignment`
 

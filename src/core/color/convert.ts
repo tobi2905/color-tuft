@@ -24,9 +24,17 @@ export function rgbToHex(c: RGB): string {
 
 /** Undo sRGB's gamma encoding: 0–255 to linear light, where 0.5 means half the light. */
 function toLinear(v: number): number {
+  // Pixels are whole numbers 0–255: look those up instead of computing a power each time.
+  if (Number.isInteger(v) && v >= 0 && v <= 255) return LINEAR_OF_BYTE[v]
+  return toLinearExact(v)
+}
+
+function toLinearExact(v: number): number {
   const c = v / 255
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
 }
+
+const LINEAR_OF_BYTE = Float64Array.from({ length: 256 }, (_, v) => toLinearExact(v))
 
 /** Re-apply sRGB's gamma encoding: linear light to 0–255, rounded and clamped. */
 function fromLinear(x: number): number {
