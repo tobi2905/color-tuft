@@ -1,5 +1,6 @@
 import { Stepper } from './Stepper'
 import { usePipelineSync } from './hooks/usePipelineSync'
+import { useProjectorBroadcast } from './projector/useProjectorBroadcast'
 import { STEP_LABELS } from './stepLabels'
 import { ColoursStep } from './steps/ColoursStep'
 import { OutlineStep } from './steps/OutlineStep'
@@ -25,6 +26,7 @@ export default function App() {
   const setStep = useProject((s) => s.setStep)
   const available = availableSteps({ source, result, shape })
   const { running, error } = usePipelineSync()
+  useProjectorBroadcast()
 
   return (
     <div className="app">

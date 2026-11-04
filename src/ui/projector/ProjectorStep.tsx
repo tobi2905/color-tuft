@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { calibrationLayout, drawCalibration } from '../../render/projector/calibration'
-import { drawProjectorPattern } from '../../render/projector/layers'
-import { projectorTransform } from '../../render/projector/transform'
+import { drawProjector } from '../../render/projector/drawProjector'
 import { coloursInPattern, stepFocus } from '../../render/projector/focus'
-import { useProject } from '../store/useProject'
+import { projectStore, useProject } from '../store/useProject'
+import { useWakeLock } from '../hooks/useWakeLock'
 import { ControlPanel } from './ControlPanel'
+import { projectorStateFrom } from './sync'
 import { parseCm } from '../validation'
 
 /** The first guess shows the whole rug with room around it: this share of the screen. */
@@ -24,7 +24,11 @@ export function ProjectorStep() {
   const pattern = useProject((s) => s.result?.pattern ?? null)
   const cut = useProject((s) => s.result?.cut ?? null)
   const palette = useProject((s) => s.palette)
-  const [mode, setMode] = useState<Mode>('calibrate')
+  const mode = useProject((s) => s.projector.mode)
+  const setMode = useProject((s) => s.setProjectorMode)
+  const [windowBlocked, setWindowBlocked] = useState(false)
+  // Projecting from this window (single-screen setup): keep the screen awake.
+  useWakeLock(true)
   const projector = useProject((s) => s.projector)
   const initProjectorScale = useProject((s) => s.initProjectorScale)
   const nudge = useProject((s) => s.nudge)
@@ -59,29 +63,10 @@ export function ProjectorStep() {
     }
   }, [viewport, rug, initProjectorScale])
 
-  // Draw.
+  // Draw (the same picture the projector window shows).
   useEffect(() => {
-    const el = canvas.current
-    const ctx = el?.getContext('2d')
-    if (!el || !ctx || viewport.w === 0 || projector.pxPerMm === null) return
-    const dpr = window.devicePixelRatio || 1
-    el.width = viewport.w * dpr
-    el.height = viewport.h * dpr
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const options = {
-      rug,
-      viewport,
-      pxPerMm: projector.pxPerMm,
-      calibrationFactor: projector.factor,
-      offsetPx: projector.offsetPx,
-      mirror: projector.mirror,
-    }
-    if (mode === 'pattern' && pattern) {
-      drawProjectorPattern(ctx, pattern, palette, cut, options, projector.layers, projector.focus)
-    } else {
-      const t = projectorTransform(options)
-      drawCalibration(ctx, calibrationLayout(rug, t.toScreen, t.scale, viewport), viewport)
-    }
+    if (canvas.current)
+      drawProjector(canvas.current, viewport, projectorStateFrom(projectStore.getState()))
   }, [viewport, rug, projector, mode, pattern, palette, cut])
 
   // Arrow keys: in Pattern mode with one colour showing, Left/Right step the colour; otherwise
@@ -160,6 +145,31 @@ export function ProjectorStep() {
         )}
       </div>
       <section className="card settings">
+        <div className="palette-actions open-window">
+          <button
+            type="button"
+            onClick={() => {
+              const w = window.open(
+                `${window.location.pathname}#projector`,
+                'color-tuft-projector',
+                'popup',
+              )
+              setWindowBlocked(w === null)
+            }}
+          >
+            Open projector window
+          </button>
+        </div>
+        {windowBlocked && (
+          <p className="error">
+            The browser blocked the new window. Allow pop-ups for this site, or use Fullscreen on
+            the projector.
+          </p>
+        )}
+        <p className="hint">
+          Drag the new window onto the projector and click it to go fullscreen; this window keeps
+          the controls and stays in sync.
+        </p>
         <ModeSwitch mode={mode} onChange={setMode} />
         {mode === 'pattern' ? (
           <>

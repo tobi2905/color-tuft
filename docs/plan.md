@@ -358,11 +358,11 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: the current colour's regions drawn bright (soft white fill, full outlines), everything else faint outlines, only its numbers shown; Left and Right arrows (in Pattern mode, with one colour on) and Previous/Next step through the colours used in the pattern, wrapping round (a colour no longer there, e.g. merged, starts again at the first); the panel shows the yarn's swatch, number and name in large text and "n of N colours". Arrow keys in Calibrate mode still nudge; text fields and sliders keep their own arrow keys.
   - Check: stepping through the Triforce lights up exactly the regions with number 1, then number 2 (also a test).
   - Commit: `feat: one-colour-at-a-time mode`
-- [ ] **8.5 Two windows and wake lock.**
-  - Files: `src/ui/projector/sync.ts`, `src/ui/projector/ProjectorWindow.tsx`, `test/ui/sync.test.ts`.
-  - Builds: `window.open` for the projector window; `BroadcastChannel('color-tuft-projector')` carrying `{ type: 'state', state: ProjectorState }`; a pure reducer `applyMessage(state, msg)`; single-window fullscreen fallback with keyboard shortcuts; Screen Wake Lock, re-acquired when the tab becomes visible again.
-  - Tests: `applyMessage` ignores unknown message types and applies state updates.
-  - Check (Milestone B): two windows stay in sync; the screen doesn't sleep during a 15-minute session.
+- [X] **8.5 Two windows and wake lock.**
+  - Files: `src/ui/projector/sync.ts` (`applyMessage`, `projectorStateFrom`, tested), `src/ui/projector/ProjectorWindow.tsx`, `src/ui/projector/useProjectorBroadcast.ts`, `src/ui/hooks/useWakeLock.ts`, `src/render/projector/drawProjector.ts` (one drawing function for both windows), `test/ui/sync.test.ts`; `src/main.tsx` shows the projector window at `#projector`; the projector mode moves into the store.
+  - Builds: "Open projector window" (`window.open` of `…#projector`, a message if pop-ups are blocked); the projector window is only the picture, click once for fullscreen; `BroadcastChannel('color-tuft-projector')` carrying `{ type: 'state', state }` (only the parts that changed) and `{ type: 'request' }` (a new projector window asks for everything); a pure reducer `applyMessage(state, msg)`; the single-window fullscreen view with its Adjust overlay stays as the fallback; Screen Wake Lock in both, re-acquired when the tab becomes visible again.
+  - Tests: `applyMessage` ignores unknown, malformed and request messages, applies (partial) state updates, and waits for a full state before showing anything.
+  - Check (Milestone B): two windows stay in sync (also checked in Chromium: every change on the laptop changes the projector picture; a window opened later shows the same picture); the screen doesn't sleep during a 15-minute session.
   - Commit: `feat: projector window with live sync`
 
 ## Phase 9: Yarn stock, matching and amounts

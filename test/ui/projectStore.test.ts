@@ -318,4 +318,11 @@ describe('project store', () => {
     store.getState().setMirror(false)
     expect(store.getState().projector.mirror).toBe(false)
   })
+
+  it('remembers whether the projector shows the calibration or the pattern', () => {
+    const store = createProjectStore()
+    expect(store.getState().projector.mode).toBe('calibrate')
+    store.getState().setProjectorMode('pattern')
+    expect(store.getState().projector.mode).toBe('pattern')
+  })
 })

@@ -62,6 +62,8 @@ export type ProjectState = {
     layers: LayerOptions
     /** One colour at a time: the label shown lit up, or null for all colours. */
     focus: number | null
+    /** What the projector shows. */
+    mode: 'calibrate' | 'pattern'
   }
 }
 
@@ -92,6 +94,7 @@ export type ProjectActions = {
   setMirror(mirror: boolean): void
   setLayers(change: Partial<LayerOptions>): void
   setFocus(label: number | null): void
+  setProjectorMode(mode: 'calibrate' | 'pattern'): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -127,6 +130,7 @@ const initialState: ProjectState = {
     mirror: true,
     layers: { outlines: true, lineWidthPx: 2, numbers: true, fontMm: 30, cut: true, grid: false },
     focus: null,
+    mode: 'calibrate',
   },
 }
 
@@ -241,6 +245,7 @@ export function createProjectStore() {
       },
       setMirror: (mirror) => set({ projector: { ...get().projector, mirror } }),
       setFocus: (focus) => set({ projector: { ...get().projector, focus } }),
+      setProjectorMode: (mode) => set({ projector: { ...get().projector, mode } }),
       setLayers: (change) =>
         set({
           projector: { ...get().projector, layers: { ...get().projector.layers, ...change } },
