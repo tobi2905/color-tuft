@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Two quick pushes to a branch: the older run is cancelled. On main, runs queue instead,
+# so a deploy is never cut off halfway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run format:check
+      - run: npm run build
+
+      # Jobs share no files, so dist/ travels to the deploy job as an artifact.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write # publish to Pages
+      id-token: write # prove to Pages that this run comes from this repo (OIDC)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
