@@ -152,7 +152,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Tests: `'#FFD700'` ↔ `{r:255,g:215,b:0}`; white gives L ≈ 1, a and b ≈ 0 (±1e-3); black gives L = 0; 1,000 seeded random colours round-trip within 1 per channel.
   - Walkthrough: sRGB gamma and linear light, why RGB distance lies about how different colours look, what OKLab's L, a and b mean.
   - Commit: `feat(core): OKLab colour conversion`
-- [ ] **1.2 Colour distance and match ratings.**
+- [X] **1.2 Colour distance and match ratings.**
   - Files: `src/core/color/distance.ts`, `test/core/color/distance.test.ts`.
   - Builds: `deltaE(a: OKLab, b: OKLab): number` (Euclidean distance × 100), `matchRating(d: number): 'very-close' | 'close' | 'noticeable'` with thresholds `VERY_CLOSE = 3`, `CLOSE = 8` exported as constants (tuned later).
   - Tests: identical colours give 0 and `'very-close'`; black vs white gives `'noticeable'`; `deltaE(a, b) === deltaE(b, a)`.
