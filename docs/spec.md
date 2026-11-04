@@ -57,6 +57,7 @@ The pipeline runs in a Web Worker so the page stays responsive. Each step is a s
    - They run before cleanup, so areas an outline squeezes below the minimum detail size are merged or flagged like any other.
    - When the art already has dark outlines (a dark colour that mostly forms thin lines), the app suggests turning this on; thickening those existing lines (step 8) is the other option.
 8. **Cleanup:** islands smaller than the minimum detail size merge into the neighbour they share the most border with.
+   - Never silently: notable details that disappear (a distinct, high-contrast spot such as a pupil) are listed ("3 small details were merged away") and highlighted, with a hint (make the rug bigger, lower the minimum detail) and a "keep this detail" option, stored like other edits so it survives re-runs.
    - Lines thinner than tuftable are flagged with a warning and a "thicken to minimum" option, never deleted. Outlines often carry flat art.
 9. **Smooth tracing, never pixel steps:** the pixel grid only decides colours; it is never drawn as lines.
    - Borders are traced along the cracks between pixels, then fitted at a tolerance larger than one pixel, so a diagonal comes out as a diagonal, not a staircase.
@@ -243,6 +244,7 @@ All decisions were made in the brainstorming session on Nov 4, 2026, unless mark
 | Shaped rugs by default, rectangles with a background yarn | Covers both common rug types |
 | Brush and fill touch-up; full editor later | Auto results always need a few fixes; a paint app is a project in itself |
 | Recolour a single shape; touch-ups stored as replayable steps (added Nov 4, 2026) | Often one shape needs another colour, not all of its colour; edits must survive re-runs after any setting changes |
+| Show details removed by cleanup, with "keep this detail" (added Nov 4, 2026) | A pupil on a small rug vanished without notice; the user should see what the minimum detail costs |
 | Thicken a single line, picked by click or brushed section (added Nov 4, 2026) | Often only one outline needs to be stronger (e.g. around an eye); thickening every line of that colour changes the whole design |
 | Pick a colour by clicking the original; simplify busy areas with a brush (added Nov 4, 2026) | The user often sees the colour that matters; complex backgrounds make shapes too hard to tuft, but the rest of the art should keep its detail |
 | Add one colour picks the colour that improves the match most; hovering shows where each colour sits (added Nov 4, 2026) | Raising the count should add a sensible colour, not reshuffle everything; seeing where a colour sits makes the palette understandable |

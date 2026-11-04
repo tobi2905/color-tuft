@@ -67,7 +67,7 @@ This is a learning project: you review and understand every line before it is co
 | 7 Outline | Cut line, border offset, rectangle mode | 4 |
 | 8 Projector | **Milestone B:** project and tuft the Triforce | 5 |
 | 9 Yarn | Stock, matching, amounts, waste learning | 6 |
-| 10 Touch-ups | Brush, fill, merge, undo, thicken one line, simplify an area | 6 |
+| 10 Touch-ups | Brush, recolour, undo, thicken one line, simplify an area, show removed details | 7 |
 | 11 Storage | Autosave, `.tuft` files, linked folder | 4 |
 | 12 Preview | Yarn mockup for clients | 4 |
 | 13 Release | **Milestone C:** v0.1 public, offline, designed, tested | 4 |
@@ -313,10 +313,10 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 **Done when:** shaped rugs get a smooth cut line with an adjustable border, and rectangular rugs get a background yarn area.
 
-- [ ] **7.1 Detect the background.**
+- [X] **7.1 Detect the background.**
   - Files: `src/core/outline/background.ts`, `test/core/outline/background.test.ts`.
-  - Builds: `detectBackground(img: ImageGrid): { mask: Uint8Array; method: 'alpha' | 'edge-colour' | 'none' }`. Alpha < 128 is background if the image has transparency; otherwise flood fill from the border through colours within deltaE 6 of the dominant border colour, used only if that colour covers at least 60% of the border pixels.
-  - Tests: `withSoftAlpha(triforce)` mask matches the shape within 1 px; `thinOutline` on a white background keeps white art enclosed by the outline; a busy image with no dominant border colour gives `'none'`.
+  - Builds: `detectBackground(img: ImageGrid): { mask: Uint8Array; method: 'alpha' | 'edge-colour' | 'none' }`, run on the original image before fitting (fitting adds transparent padding that would look like transparency). Alpha < 128 is background if the image has transparency; otherwise flood fill from the border through colours within deltaE 6 of the dominant border colour, used only if that colour covers at least 60% of the border pixels; a "background" covering over 95% of the image counts as none. Decisions are remembered per RGB colour (about 0.4 s for a 4096 px image).
+  - Tests: `withSoftAlpha(triforce)` mask matches the shape within 2 px (soft edges round sharp tips by a pixel or two); `thinOutline` on a white background keeps white art enclosed by the outline; a busy image with no dominant border colour gives `'none'`.
   - Commit: `feat(core): background detection`
 - [ ] **7.2 Cut line with offset and smoothing.**
   - Files: `src/core/outline/cutLine.ts`, `test/core/outline/cutLine.test.ts`.
@@ -435,6 +435,11 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: `simplifyArea(map: LabelMap, mask: Uint8Array, detailMm: number): LabelMap`: inside the painted mask only, islands smaller than `detailMm²` merge (as in 4.2) and borders are smoothed with a majority filter of radius `detailMm / 2` (each pixel takes the most common label around it), repeated until stable; pixels outside the mask never change. Simplified areas are stored as `{ mask, detailMm }` edits and applied in the pipeline after cleanup, so they survive re-runs. UI: a "Simplify" brush with a detail size in cm.
   - Tests: a speckled background painted over loses every patch below the detail size while the art outside the mask is unchanged pixel for pixel; a jagged border inside the mask becomes smoother (shorter traced border); an empty mask changes nothing.
   - Commit: `feat: simplify an area`
+- [ ] **10.7 Show what cleanup removed.**
+  - Files: `src/core/cleanup/lostDetails.ts`, `test/core/cleanup/lostDetails.test.ts`, pipeline, store and `src/ui/steps/ColoursStep.tsx` (extend).
+  - Builds: `lostDetails(before: LabelMap, after: LabelMap, palette: OKLab[]): { at: Pt; label: number; areaMm2: number }[]`: patches of the colour map before cleanup that are gone after it and stand out from what replaced them (deltaE ≥ 20, e.g. a yellow ring in black), largest first. The pipeline reports them; the Colours step lists "N small details were merged away", highlights them on both pictures, explains why (rug size, minimum detail) and offers "keep this detail": an edit `{ kind: 'keep'; at; colour }` replayed before cleanup that exempts that patch from merging.
+  - Tests: a 2 mm ring of yellow in black at 10 mm minimum detail is reported and a same-coloured speck of noise is not; after "keep this detail" the ring survives a re-run; nothing is reported when nothing was removed.
+  - Commit: `feat: show what cleanup removed`
 
 ## Phase 11: Storage
 
