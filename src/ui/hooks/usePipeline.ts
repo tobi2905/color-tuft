@@ -29,11 +29,11 @@ function workerApi(): PipelineApi {
   }
 
   return {
-    async run(input: PipelineInput) {
+    async run(input: PipelineInput, imageKey: string) {
       if (!worker) start()
       const data = input.image.data.slice()
       const copy = { ...input, image: { ...input.image, data } }
-      return Promise.race([remote!.run(Comlink.transfer(copy, [data.buffer])), crashed])
+      return Promise.race([remote!.run(Comlink.transfer(copy, [data.buffer]), imageKey), crashed])
     },
   }
 }

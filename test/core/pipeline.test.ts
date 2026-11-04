@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { connectedRegions } from '../../src/core/cleanup/regions'
 import { srgbToOklab } from '../../src/core/color/convert'
 import { deltaE } from '../../src/core/color/distance'
-import { type PipelineInput, runPipeline } from '../../src/core/pipeline'
+import {
+  type PipelineInput,
+  createCachedPipeline,
+  finishPipeline,
+  prepareImage,
+  runPipeline,
+} from '../../src/core/pipeline'
 import { NO_LABEL, type OKLab } from '../../src/core/types'
 import {
   FIXTURE,
@@ -181,5 +187,44 @@ describe('runPipeline', () => {
     const b = runPipeline(base({ image: withJpegNoise(triforce(300), 12, 5) }))
     expect(a.palette).toEqual(b.palette)
     expect(a.map.labels).toEqual(b.map.labels)
+  })
+
+  it('gives the same result in two parts (image first, then colours) as in one go', () => {
+    const input = base({ image: withJpegNoise(triforce(300), 12, 5), count: 3 })
+    const whole = runPipeline(input)
+    const parts = finishPipeline(prepareImage(input), input)
+    expect(parts.palette).toEqual(whole.palette)
+    expect(parts.map.labels).toEqual(whole.map.labels)
+    expect(parts.suggestedCount).toBe(whole.suggestedCount)
+  })
+})
+
+describe('createCachedPipeline', () => {
+  it('prepares an image once and reuses it while only colour settings change', () => {
+    const cached = createCachedPipeline()
+    const input = base({ image: triforce(300) })
+    cached.run(input, 'image-1|800x800')
+    cached.run({ ...input, count: 3 }, 'image-1|800x800')
+    cached.run({ ...input, locked: [srgbToOklab(FIXTURE.red)] }, 'image-1|800x800')
+    expect(cached.preparedCount).toBe(1)
+  })
+
+  it('prepares again for a new image or rug size', () => {
+    const cached = createCachedPipeline()
+    const input = base({ image: triforce(300) })
+    cached.run(input, 'image-1|800x800')
+    cached.run({ ...input, rug: { widthMm: 600, heightMm: 600 } }, 'image-1|600x600')
+    cached.run(input, 'image-2|800x800')
+    expect(cached.preparedCount).toBe(3)
+  })
+
+  it('gives the same result from the cache as without it', () => {
+    const cached = createCachedPipeline()
+    const input = base({ image: withJpegNoise(triforce(300), 12, 5) })
+    cached.run(input, 'k')
+    const again = cached.run({ ...input, count: 3 }, 'k')
+    const fresh = runPipeline({ ...input, count: 3 })
+    expect(again.palette).toEqual(fresh.palette)
+    expect(again.map.labels).toEqual(fresh.map.labels)
   })
 })

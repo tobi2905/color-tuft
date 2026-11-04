@@ -64,7 +64,11 @@ The pipeline runs in a Web Worker so the page stays responsive. Each step is a s
    - Each border between two colours is traced and smoothed once as a shared edge, so neighbouring areas fit with no gaps or overlaps after smoothing.
    - The outline, preview and projector view all use these vectors.
 
-**Touch-ups** (brush, fill, merge, swap) edit the colour map directly; only steps 7 to 9 re-run for the affected area, so edits feel instant.
+**Touch-ups** (brush, recolour a shape, swap) are stored as steps (where, which colour), not as changes to a finished map: the pipeline replays them after cleanup on every run, finding each shape again by its position and colour, so they survive changes to the colour count, merges and other settings. Merging colours happens on the palette (see Colours step).
+
+**Recolour a shape:** click one shape and choose its new colour from the palette: only that shape changes, not every area with its old colour.
+
+**Thicken one line:** besides thickening every thin line of a colour, a single line can be picked: click it in the pattern to select that one connected line, or brush over a section when lines are joined (outlines often run into each other). Only that line or section is thickened, to a width in cm; other lines of the same colour stay as they are. The edit is stored as a point on the line, its colour and the width (or the brushed area), so it finds the line again after a re-run; it never grows into the outside of the rug.
 
 **Simplify an area:** busy parts, such as a complex background, produce shapes that are hard to tuft. Paint over such a part and choose a detail size: inside it, smaller details merge away and borders are smoothed more strongly; the rest of the design is untouched. Simplified areas are stored with the project and survive re-runs.
 
@@ -238,6 +242,8 @@ All decisions were made in the brainstorming session on Nov 4, 2026, unless mark
 | Projector is the transfer method | What most tufters use |
 | Shaped rugs by default, rectangles with a background yarn | Covers both common rug types |
 | Brush and fill touch-up; full editor later | Auto results always need a few fixes; a paint app is a project in itself |
+| Recolour a single shape; touch-ups stored as replayable steps (added Nov 4, 2026) | Often one shape needs another colour, not all of its colour; edits must survive re-runs after any setting changes |
+| Thicken a single line, picked by click or brushed section (added Nov 4, 2026) | Often only one outline needs to be stronger (e.g. around an eye); thickening every line of that colour changes the whole design |
 | Pick a colour by clicking the original; simplify busy areas with a brush (added Nov 4, 2026) | The user often sees the colour that matters; complex backgrounds make shapes too hard to tuft, but the rest of the art should keep its detail |
 | Add one colour picks the colour that improves the match most; hovering shows where each colour sits (added Nov 4, 2026) | Raising the count should add a sensible colour, not reshuffle everything; seeing where a colour sits makes the palette understandable |
 | A design pass before the release (added Nov 4, 2026) | Function first; one consistent look once all six steps exist |

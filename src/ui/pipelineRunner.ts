@@ -1,12 +1,12 @@
 import type { PipelineInput, PipelineResult } from '../core/pipeline'
 
 /** Anything that can run the pipeline: the Web Worker in the app, a fake in tests. */
-export type PipelineApi = { run(input: PipelineInput): Promise<PipelineResult> }
+export type PipelineApi = { run(input: PipelineInput, imageKey: string): Promise<PipelineResult> }
 export type RunnerState = { result: PipelineResult | null; running: boolean; error: string | null }
 export type PipelineRunner = {
   getState(): RunnerState
   subscribe(listener: () => void): () => void
-  run(input: PipelineInput): Promise<void>
+  run(input: PipelineInput, imageKey: string): Promise<void>
 }
 
 /**
@@ -35,11 +35,11 @@ export function createPipelineRunner(api: PipelineApi): PipelineRunner {
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    async run(input) {
+    async run(input, imageKey) {
       const id = ++newest
       update({ running: true })
       try {
-        const result = await api.run(input)
+        const result = await api.run(input, imageKey)
         if (id === newest) update({ result, running: false, error: null })
       } catch (e) {
         if (id === newest)

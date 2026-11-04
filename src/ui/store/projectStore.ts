@@ -23,6 +23,8 @@ export type OutlineSettings = {
 
 export type ProjectState = {
   source: Source | null
+  /** Counts uploads, so every image (even the same file again) is a new one for the cache. */
+  sourceId: number
   rug: RugSize
   shape: 'shaped' | 'rectangle'
   /** Colours wanted; null = use the suggested count. */
@@ -66,6 +68,7 @@ const SAME_COLOUR_DELTA_E = 3
 
 const initialState: ProjectState = {
   source: null,
+  sourceId: 0,
   rug: { widthMm: 1000, heightMm: 1000 },
   shape: 'shaped',
   count: null,
@@ -102,6 +105,7 @@ export function createProjectStore() {
         // applied to every artwork), but the chosen width and placement are remembered.
         set({
           source,
+          sourceId: get().sourceId + 1,
           palette: [],
           result: null,
           count: null,

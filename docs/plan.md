@@ -67,7 +67,7 @@ This is a learning project: you review and understand every line before it is co
 | 7 Outline | Cut line, border offset, rectangle mode | 4 |
 | 8 Projector | **Milestone B:** project and tuft the Triforce | 5 |
 | 9 Yarn | Stock, matching, amounts, waste learning | 6 |
-| 10 Touch-ups | Brush, fill, merge, undo, simplify an area | 5 |
+| 10 Touch-ups | Brush, fill, merge, undo, thicken one line, simplify an area | 6 |
 | 11 Storage | Autosave, `.tuft` files, linked folder | 4 |
 | 12 Preview | Yarn mockup for clients | 4 |
 | 13 Release | **Milestone C:** v0.1 public, offline, designed, tested | 4 |
@@ -275,7 +275,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 - [X] **6.1 Pipeline worker.**
   - Files: `src/worker/pipeline.worker.ts`, `src/ui/pipelineRunner.ts`, `src/ui/hooks/usePipeline.ts`, `test/ui/pipelineRunner.test.ts`.
-  - Builds: the worker exposes `runPipeline` through Comlink, passing image buffers as transferables (the UI transfers a copy and keeps its original). `createPipelineRunner(api)` holds the logic in plain TypeScript (testable in Node): a failed run keeps the last good `result` and sets `error`; only the newest run counts. `usePipeline()` is a thin `useSyncExternalStore` wrapper returning `{ result, running, error, run(input) }`, one shared worker for the app; a crashed worker fails the pending run and is restarted.
+  - Builds: the worker exposes `runPipeline` through Comlink, passing image buffers as transferables (the UI transfers a copy and keeps its original). `createPipelineRunner(api)` holds the logic in plain TypeScript (testable in Node): a failed run keeps the last good `result` and sets `error`; only the newest run counts. `usePipeline()` is a thin `useSyncExternalStore` wrapper returning `{ result, running, error, run(input) }`, one shared worker for the app; a crashed worker fails the pending run and is restarted. Added after 6.6: `runPipeline` is split into `prepareImage` (fit, denoise, sample, suggestion) and `finishPipeline`; the worker keeps the prepared image (`createCachedPipeline`, keyed by upload and rug size), so merges, locks and colour changes skip the image work; `usePipelineSync` waits 300 ms only after typing or dragging, clicks run at once (merge/lock: about 1.1 s → 0.37 s on a real 1 m rug).
   - Tests: with a fake worker that throws, `result` is unchanged and `error` is set; a slower older run never overwrites a newer one; the next good run clears the error.
   - Walkthrough: what a Web Worker is, why transferables avoid copying, how Comlink hides `postMessage`.
   - Commit: `feat: pipeline in a web worker`
@@ -305,6 +305,9 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: the splitting stage of `findPalette` stops picking at random: `bestNextColour(samples, palette)` adds the candidate that reduces the total squared deltaE between samples and their nearest palette colour the most; candidates are the average colours of well-filled histogram cubes (`cubeMeans` in peaks.ts), at least deltaE 5 from the palette. k-means refinement is dropped, so `count + 1` returns exactly the `count` palette plus one colour and nothing moves (the spec: never reshuffle); no randomness is left. UI: "Add a colour", "Remove a colour" and "Pick a colour from the image" beside the palette; the added colour is briefly highlighted with a note (`describeAddedColour`: "a darker shade of Colour 2 (Yellow)", "a variation of …", "a new colour"); if nothing is worth adding, the note says so and the count goes back. Eyedropper: `sampleColour(img, at, radiusPx)` (per-channel median in OKLab, skipping transparent pixels); a click on the original undoes the fit-and-centre of `fitToRug`, and the colour is stored in `picked` (locked until unlocked, passed to the pipeline as locked, raises the count by one); a colour already in the palette is just locked.
   - Tests: a gradient asked for n + 1 colours contains the n colours within deltaE 2; the added colour is the one with the biggest error reduction (checked against brute force on a small set); a 2-colour Triforce asked for one more adds nothing; same input, same result (no randomness left); `sampleColour` on a noisy patch with 10% white highlights returns within deltaE 2 of the true colour; a picked colour comes back exactly in the palette.
   - Commit: `feat: add the next best colour`
+
+- [ ] **6.7 Rework "Pick a colour from the image".** (to be defined)
+  - Noted by Tobias after trying 6.6: the eyedropper works, but how it behaves doesn't make sense yet. Before building: go through it together (what should a click do, what should the palette show, what about colours already in the palette), then write the Builds and Tests lines here.
 
 ## Phase 7: Outline and rug shape
 
@@ -399,30 +402,35 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 ## Phase 10: Touch-ups
 
-**Done when:** you can fix spots the algorithm got wrong with brush, fill, merge, swap and lock, and undo any of it.
+**Done when:** you can fix spots the algorithm got wrong with the brush, recolour single shapes, thicken single lines and simplify busy areas, the edits survive every re-run, and you can undo any of it.
 
-- [ ] **10.1 Edit operations.**
-  - Files: `src/core/edit/ops.ts`, `test/core/edit/ops.test.ts`.
-  - Builds: `paintBrush(map: LabelMap, center: Pt, radiusMm: number, label: number): LabelMap`; `fillRegion(map: LabelMap, at: Pt, label: number): LabelMap`; `mergeLabels(map: LabelMap, from: number, into: number): LabelMap` **(you write)**. All return a new map; the input is never changed.
-  - Tests: brush changes only pixels within the radius; fill changes exactly one connected region; after `mergeLabels` label `from` no longer occurs; the input map is unchanged after every op.
+- [ ] **10.1 Edit operations as replayable steps.**
+  - Files: `src/core/edit/ops.ts`, `src/core/edit/replay.ts`, tests in `test/core/edit/`.
+  - Builds: `paintBrush(map, stroke: Pt[], radiusMm, label)`; `recolourShape(map, at: Pt, label)` (the one connected shape under `at` takes `label`). Edits are data: `{ kind: 'brush'; stroke; radiusMm; colour }` and `{ kind: 'recolour'; at; from: OKLab; colour: OKLab }`. `replayEdits(map, palette, edits)` applies them in order, finding labels by colour (nearest palette colour within deltaE 10, as merges do) and a recoloured shape by its point and old colour (the nearest pixel of that colour within 3 mm); an edit whose colour or shape is gone is skipped. All return new maps; inputs never change.
+  - Tests: the brush changes only pixels within the radius of the stroke; recolouring changes exactly one connected shape and no other area of the same colour; a recolour still finds its shape after a re-run with a slightly different palette, and is skipped if the shape's colour is gone; edits replay in order; inputs are unchanged.
   - Commit: `feat(core): edit operations`
-- [ ] **10.2 Re-run after edits.**
-  - Files: `src/core/pipeline.ts` (add `rerunFromCleanup(map, opts)`), `test/core/pipeline.test.ts`.
-  - Builds: re-runs only cleanup and tracing on an edited map. First measure it on a 2 × 1.5 m rug; only if it takes more than 200 ms do we add re-tracing of just the changed area.
-  - Tests: editing one region and re-running changes only that region's edges.
+- [ ] **10.2 Edits in the pipeline.**
+  - Files: `src/core/pipeline.ts` (extend), store and pipeline input (extend), `test/core/pipeline.test.ts`.
+  - Builds: `PipelineInput` gains `edits`; `finishPipeline` replays them after cleanup, before thin-line warnings and tracing, so they survive any re-run (the worker cache keeps it quick). Measure on a 2 × 1.5 m rug with 50 edits; only if replaying takes more than 200 ms do we optimise.
+  - Tests: an edit survives a change of the colour count; recolouring one of the three Triforce triangles leaves the other two gold.
   - Walkthrough: measure before optimising.
-  - Commit: `feat(core): re-run after edits`
+  - Commit: `feat(core): edits in the pipeline`
 - [ ] **10.3 Undo and redo.**
   - Files: `src/ui/store/history.ts`, `test/ui/history.test.ts`.
-  - Builds: `createHistory<T>(limit = 50)` with `push`, `undo`, `redo`, `canUndo`, `canRedo`; stores label map snapshots plus palette.
+  - Builds: `createHistory<T>(limit = 50)` with `push`, `undo`, `redo`, `canUndo`, `canRedo`; it keeps the list of edits (and merges, locks, thickened lines), not colour-map snapshots, so it stays small.
   - Tests: push 3, undo 2, redo 1 gives state 2; pushing after an undo clears the redo stack; the 51st push drops the oldest.
   - Commit: `feat(ui): undo and redo`
 - [ ] **10.4 Touch-up tools.**
   - Files: `src/ui/steps/ColoursStep.tsx` (extend), `src/ui/tools/Toolbar.tsx`.
-  - Builds: brush and fill tools with size in cm, target colour picked from the numbered palette, merge and swap actions, Ctrl+Z and Ctrl+Shift+Z.
-  - Check: painting a missing eye back in and undoing it both work, and the outline updates within a moment.
+  - Builds: a brush with size in cm; "Recolour a shape": click a shape (it is highlighted), pick its new colour from the numbered palette; swap two colours; Ctrl+Z and Ctrl+Shift+Z; a list of edits with undo.
+  - Check: painting a missing eye back in and undoing it both work; recolouring one triangle of the Triforce leaves the others gold, also after changing the colour count.
   - Commit: `feat(ui): touch-up tools`
-- [ ] **10.5 Simplify an area.**
+- [ ] **10.5 Thicken one line.**
+  - Files: `src/core/edit/thickenLine.ts`, `test/core/edit/thickenLine.test.ts`, `src/ui/tools/Toolbar.tsx` (extend), store and pipeline input (extend).
+  - Builds: `selectLine(map: LabelMap, at: Pt): Uint8Array | null`: the connected patch (corner contact counts, as lines are staircases) of the colour under or nearest to `at` (within 3 mm); `thickenLine(map: LabelMap, line: Uint8Array, widthMm: number): LabelMap`: pixels within `widthMm / 2` of the selected line's thin parts take its colour, nothing else changes, never `NO_LABEL`. With a brushed mask instead of a click, only the line's pixels inside the mask count as selected. Stored as edits `{ at, colour, widthMm }` or `{ mask, colour, widthMm }`, applied in the pipeline after cleanup, so they survive re-runs. UI: a "Line" tool: click to select (highlighted), or brush a section; "Thicken this line to [width] cm"; edits listed with undo.
+  - Tests: in `thinOutline` with two separate black rings, thickening one leaves the other unchanged pixel for pixel; a brushed section of a joined line network thickens only inside the mask (plus the growth); the selected line is at least the chosen width afterwards; a click a few mm off the line still finds it; after a re-run with a slightly different palette the edit still finds its line by colour.
+  - Commit: `feat: thicken one line`
+- [ ] **10.6 Simplify an area.**
   - Files: `src/core/edit/simplify.ts`, `test/core/edit/simplify.test.ts`, `src/ui/tools/Toolbar.tsx` (extend), store and pipeline input (extend).
   - Builds: `simplifyArea(map: LabelMap, mask: Uint8Array, detailMm: number): LabelMap`: inside the painted mask only, islands smaller than `detailMm²` merge (as in 4.2) and borders are smoothed with a majority filter of radius `detailMm / 2` (each pixel takes the most common label around it), repeated until stable; pixels outside the mask never change. Simplified areas are stored as `{ mask, detailMm }` edits and applied in the pipeline after cleanup, so they survive re-runs. UI: a "Simplify" brush with a detail size in cm.
   - Tests: a speckled background painted over loses every patch below the detail size while the art outside the mask is unchanged pixel for pixel; a jagged border inside the mask becomes smoother (shorter traced border); an empty mask changes nothing.

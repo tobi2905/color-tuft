@@ -55,18 +55,45 @@ export type PipelineResult = {
   mergedAway: number
 }
 
+/** The image stages' results: they depend only on the image, the rug size and the seed. */
+export type PreparedImage = {
+  /** The image at rug size (1 mm per pixel), denoised. */
+  clean: ImageGrid
+  samples: OKLab[]
+  suggestedCount: number
+  /** How big one pixel of the original image is on the rug (mm). */
+  sourcePxMm: number
+}
+
 /**
  * The whole image pipeline, from an image to a vector pattern:
- * fit to the rug → denoise → sample → peaks → suggested count → palette → colour map → merges →
- * outlines (only if turned on) → merge small islands → thicken chosen colours → thin-line
- * warnings → vector pattern.
+ * fit to the rug → denoise → sample → peaks → suggested count (prepareImage), then
+ * palette → colour map → merges → outlines (only if turned on) → merge small islands →
+ * thicken chosen colours → thin-line warnings → vector pattern (finishPipeline).
  */
 export function runPipeline(input: PipelineInput): PipelineResult {
-  const fitted = fitToRug(input.image, input.rug, FINE_MM_PER_PX)
-  const clean = denoise(fitted, DENOISE)
+  return finishPipeline(prepareImage(input), input)
+}
 
+/** The stages that depend only on the image, the rug size and the seed. */
+export function prepareImage(input: Pick<PipelineInput, 'image' | 'rug' | 'seed'>): PreparedImage {
+  const clean = denoise(fitToRug(input.image, input.rug, FINE_MM_PER_PX), DENOISE)
   const samples = samplePixels(clean, SAMPLE_COUNT, input.seed)
-  const suggestedCount = suggestCount(findPeaks(samples))
+  return {
+    clean,
+    samples,
+    suggestedCount: suggestCount(findPeaks(samples)),
+    // fitToRug scales by the smaller of the two ratios.
+    sourcePxMm: Math.min(
+      input.rug.widthMm / input.image.width,
+      input.rug.heightMm / input.image.height,
+    ),
+  }
+}
+
+/** The stages that depend on the colour settings: everything from the palette on. */
+export function finishPipeline(prepared: PreparedImage, input: PipelineInput): PipelineResult {
+  const { clean, samples, suggestedCount, sourcePxMm } = prepared
   const found = findPalette(samples, {
     count: input.count ?? suggestedCount,
     locked: input.locked,
@@ -95,12 +122,29 @@ export function runPipeline(input: PipelineInput): PipelineResult {
     if (label !== -1) map = thickenLabel(map, label, input.minDetailMm)
   }
   const thin = findThinParts(map, input.minDetailMm)
-  // How big one pixel of the original image is on the rug (fitToRug scales by the smaller ratio).
-  const sourcePxMm = Math.min(
-    input.rug.widthMm / input.image.width,
-    input.rug.heightMm / input.image.height,
-  )
   const pattern = buildPattern(map, input.rug, { sourcePxMm })
 
   return { palette, suggestedCount, map, pattern, thin, outlineSuggestion, mergedAway }
+}
+
+/**
+ * The pipeline with the image stages remembered: while `imageKey` stays the same (same image,
+ * same rug size), colour changes such as merges, locks or the count skip straight to
+ * finishPipeline. Used by the worker. `preparedCount`: how often the image was prepared.
+ */
+export function createCachedPipeline() {
+  let cache: { key: string; prepared: PreparedImage } | null = null
+  let preparedCount = 0
+  return {
+    run(input: PipelineInput, imageKey: string): PipelineResult {
+      if (cache?.key !== imageKey) {
+        cache = { key: imageKey, prepared: prepareImage(input) }
+        preparedCount++
+      }
+      return finishPipeline(cache.prepared, input)
+    },
+    get preparedCount() {
+      return preparedCount
+    },
+  }
 }

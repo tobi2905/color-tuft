@@ -3,6 +3,14 @@ import { deltaE } from '../core/color/distance'
 import type { PipelineInput } from '../core/pipeline'
 import type { ProjectState } from './store/projectStore'
 
+/**
+ * Which prepared image the worker may reuse: the same image (each upload counts as new) at
+ * the same rug size. Colour settings are not part of it, so changing them skips the image work.
+ */
+export function imageKeyFrom(state: ProjectState): string {
+  return `${state.sourceId}|${state.rug.widthMm}x${state.rug.heightMm}`
+}
+
 /** Seed for the pipeline's random choices: fixed, so the same project gives the same pattern. */
 export const PIPELINE_SEED = 1
 

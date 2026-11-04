@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { srgbToOklab } from '../../src/core/color/convert'
 import type { PipelineResult } from '../../src/core/pipeline'
-import { pipelineInputFrom } from '../../src/ui/pipelineInput'
+import { imageKeyFrom, pipelineInputFrom } from '../../src/ui/pipelineInput'
 import { createProjectStore } from '../../src/ui/store/projectStore'
 
 const grid = { width: 2, height: 2, data: new Uint8ClampedArray(16) }
@@ -88,5 +88,19 @@ describe('pipelineInputFrom', () => {
     store.getState().addPickedColour(red)
     store.getState().setResult({ palette: [gold, red, dark], suggestedCount: 2 } as PipelineResult)
     expect(pipelineInputFrom(store.getState())!.locked).toEqual([red])
+  })
+
+  it('keys the prepared image by image and rug size, not by colour settings', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    const first = imageKeyFrom(store.getState())
+    store.getState().setCount(5)
+    store.getState().toggleThicken(gold)
+    expect(imageKeyFrom(store.getState())).toBe(first)
+    store.getState().setRug({ widthMm: 500, heightMm: 500 })
+    const resized = imageKeyFrom(store.getState())
+    expect(resized).not.toBe(first)
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false }) // the same file again
+    expect(imageKeyFrom(store.getState())).not.toBe(resized)
   })
 })

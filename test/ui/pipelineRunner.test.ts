@@ -3,6 +3,7 @@ import type { PipelineInput, PipelineResult } from '../../src/core/pipeline'
 import { type PipelineApi, createPipelineRunner } from '../../src/ui/pipelineRunner'
 
 const input = {} as PipelineInput // the fake workers below never look inside
+const KEY = 'image-1|1000x1000'
 const resultA = { suggestedCount: 1 } as PipelineResult
 const resultB = { suggestedCount: 2 } as PipelineResult
 
@@ -24,7 +25,7 @@ describe('createPipelineRunner', () => {
   it('is running while the worker works, then holds the result', async () => {
     const { api, pending } = controllableApi()
     const runner = createPipelineRunner(api)
-    const done = runner.run(input)
+    const done = runner.run(input, KEY)
     expect(runner.getState().running).toBe(true)
     pending[0].resolve(resultA)
     await done
@@ -34,10 +35,10 @@ describe('createPipelineRunner', () => {
   it('keeps the last good result when a run fails, and shows the error', async () => {
     const { api, pending } = controllableApi()
     const runner = createPipelineRunner(api)
-    const first = runner.run(input)
+    const first = runner.run(input, KEY)
     pending[0].resolve(resultA)
     await first
-    const second = runner.run(input)
+    const second = runner.run(input, KEY)
     pending[1].reject(new Error('worker crashed'))
     await second
     expect(runner.getState()).toEqual({ result: resultA, running: false, error: 'worker crashed' })
@@ -49,23 +50,23 @@ describe('createPipelineRunner', () => {
       run: () => (calls++ === 0 ? Promise.reject(new Error('boom')) : Promise.resolve(resultB)),
     }
     const runner = createPipelineRunner(flaky)
-    await runner.run(input)
+    await runner.run(input, KEY)
     expect(runner.getState().error).toBe('boom')
-    await runner.run(input)
+    await runner.run(input, KEY)
     expect(runner.getState()).toEqual({ result: resultB, running: false, error: null })
   })
 
   it('turns anything thrown into a readable message', async () => {
     const runner = createPipelineRunner({ run: () => Promise.reject('just a string') })
-    await runner.run(input)
+    await runner.run(input, KEY)
     expect(runner.getState().error).toBe('just a string')
   })
 
   it('never lets an older, slower run overwrite a newer one', async () => {
     const { api, pending } = controllableApi()
     const runner = createPipelineRunner(api)
-    const older = runner.run(input)
-    const newer = runner.run(input)
+    const older = runner.run(input, KEY)
+    const newer = runner.run(input, KEY)
     pending[1].resolve(resultB) // the newer one finishes first
     await newer
     pending[0].resolve(resultA) // the older one arrives late
@@ -77,8 +78,8 @@ describe('createPipelineRunner', () => {
   it('stays running until the newest run is done', async () => {
     const { api, pending } = controllableApi()
     const runner = createPipelineRunner(api)
-    const older = runner.run(input)
-    runner.run(input)
+    const older = runner.run(input, KEY)
+    runner.run(input, KEY)
     pending[0].resolve(resultA)
     await older
     expect(runner.getState().running).toBe(true)
@@ -89,12 +90,12 @@ describe('createPipelineRunner', () => {
     const runner = createPipelineRunner(api)
     let calls = 0
     const unsubscribe = runner.subscribe(() => calls++)
-    const done = runner.run(input)
+    const done = runner.run(input, KEY)
     pending[0].resolve(resultA)
     await done
     expect(calls).toBe(2) // started, finished
     unsubscribe()
-    runner.run(input)
+    runner.run(input, KEY)
     expect(calls).toBe(2)
   })
 
@@ -102,9 +103,21 @@ describe('createPipelineRunner', () => {
     const { api, pending } = controllableApi()
     const runner = createPipelineRunner(api)
     const before = runner.getState()
-    const done = runner.run(input)
+    const done = runner.run(input, KEY)
     expect(runner.getState()).not.toBe(before)
     pending[0].resolve(resultA)
     await done
+  })
+
+  it('passes the image key on to the worker unchanged', async () => {
+    const keys: string[] = []
+    const runner = createPipelineRunner({
+      run: (_, key) => {
+        keys.push(key)
+        return Promise.resolve(resultA)
+      },
+    })
+    await runner.run(input, 'image-7|500x300')
+    expect(keys).toEqual(['image-7|500x300'])
   })
 })
