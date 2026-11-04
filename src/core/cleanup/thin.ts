@@ -17,7 +17,7 @@ const MAX_THICKEN_ROUNDS = 3
  * Parts of each colour thinner than minWidthMm. "At least W wide everywhere" means a coin of
  * diameter W, moved around inside the colour, reaches every pixel of it:
  * 1. distance transform: how far each pixel is from the nearest pixel of another colour;
- * 2. where that is more than W/2, the coin's centre fits;
+ * 2. where that is at least W/2, the coin's centre fits;
  * 3. every pixel within W/2 of such a centre is covered;
  * 4. pixels nothing covers are too thin. Groups of them big enough to be a line (not just a
  *    corner tip) are reported, one warning per group.
@@ -125,8 +125,10 @@ function analyse(map: LabelMap, label: number, box: Box, minWidthMm: number): Cr
   const inside = distanceTransform(isLabel, w, h)
 
   // 0 where the coin's centre fits, so the next transform measures distance to a centre.
+  // "At least radius" (not "more than"): a band of an even number of pixels has no pixel
+  // centre exactly in its middle, so its best centre is exactly radius from one side.
   const notCentre = new Uint8Array(w * h)
-  for (let i = 0; i < w * h; i++) notCentre[i] = inside[i] > radius ? 0 : 1
+  for (let i = 0; i < w * h; i++) notCentre[i] = inside[i] >= radius ? 0 : 1
   const toCentre = distanceTransform(notCentre, w, h)
 
   // Thin pixels as a small label map (0 = thin), grouped with corner contact counting.

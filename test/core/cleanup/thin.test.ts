@@ -38,6 +38,17 @@ describe('findThinParts', () => {
     }
   })
 
+  it.each([3, 4, 9, 10])(
+    'gives no warning for a straight line exactly %i mm wide at that minimum',
+    (width) => {
+      const w = 80
+      const h = 40
+      const labels = new Uint8Array(w * h)
+      for (let y = 10; y < 10 + width; y++) for (let x = 0; x < w; x++) labels[y * w + x] = 1
+      expect(findThinParts({ width: w, height: h, mmPerPx: 1, labels }, width)).toEqual([])
+    },
+  )
+
   it('gives no warning when the line is wide enough', () => {
     expect(findThinParts(outlineMap(4), 3)).toEqual([])
   })
