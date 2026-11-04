@@ -20,6 +20,7 @@ const base = (overrides: Partial<PipelineInput> = {}): PipelineInput => ({
   locked: [],
   minDetailMm: 10,
   outlines: null,
+  thicken: [],
   seed: 1,
   ...overrides,
 })
@@ -126,6 +127,16 @@ describe('runPipeline', () => {
     const result = runPipeline(base({ image: thinOutline(400, 2), count: 3, minDetailMm: 8 }))
     const black = result.palette.findIndex((p) => deltaE(p, srgbToOklab(FIXTURE.black)) < 3)
     expect(result.thin.some((t) => t.label === black)).toBe(true)
+  })
+
+  it('thickens the colours it is told to, so their thin-line warnings go away', () => {
+    const black = srgbToOklab(FIXTURE.black)
+    const lineArt = base({ image: thinOutline(400, 2), count: 3, minDetailMm: 8 })
+    const before = runPipeline(lineArt)
+    const blackLabel = before.palette.findIndex((p) => deltaE(p, black) < 3)
+    expect(before.thin.some((t) => t.label === blackLabel)).toBe(true)
+    const after = runPipeline({ ...lineArt, thicken: [before.palette[blackLabel]] })
+    expect(after.thin.some((t) => t.label === blackLabel)).toBe(false)
   })
 
   it('gives the same result for the same input', () => {

@@ -40,4 +40,35 @@ describe('pipelineInputFrom', () => {
     store.getState().toggleLock(2)
     expect(pipelineInputFrom(store.getState())!.locked).toEqual([dark])
   })
+
+  it('passes outlines only when they are on, in the darkest palette colour unless one is chosen', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setResult({ palette: [gold, dark], suggestedCount: 2 } as PipelineResult)
+    expect(pipelineInputFrom(store.getState())!.outlines).toBeNull()
+    store.getState().setOutlines({ enabled: true, widthMm: 12, where: 'outer' })
+    expect(pipelineInputFrom(store.getState())!.outlines).toEqual({
+      widthMm: 12,
+      colour: dark,
+      where: 'outer',
+    })
+    store.getState().setOutlines({ colour: gold })
+    expect(pipelineInputFrom(store.getState())!.outlines?.colour).toEqual(gold)
+  })
+
+  it('uses black for outlines before any colours are known', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setOutlines({ enabled: true })
+    expect(pipelineInputFrom(store.getState())!.outlines?.colour).toEqual(
+      srgbToOklab({ r: 0, g: 0, b: 0 }),
+    )
+  })
+
+  it('passes the colours to thicken', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().toggleThicken(dark)
+    expect(pipelineInputFrom(store.getState())!.thicken).toEqual([dark])
+  })
 })

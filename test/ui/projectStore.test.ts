@@ -130,4 +130,30 @@ describe('project store', () => {
     store.getState().setShape('rectangle')
     expect(store.getState().step).toBe('colours')
   })
+
+  it('has outlines off by default, and turns them off again for a new image', () => {
+    const store = createProjectStore()
+    expect(store.getState().outlines).toEqual({
+      enabled: false,
+      widthMm: 10,
+      colour: null,
+      where: 'all',
+    })
+    store.getState().setOutlines({ enabled: true, widthMm: 15 })
+    expect(store.getState().outlines).toMatchObject({ enabled: true, widthMm: 15, where: 'all' })
+    store.getState().setSource(source('new.png'))
+    expect(store.getState().outlines.enabled).toBe(false)
+    expect(store.getState().outlines.widthMm).toBe(15) // the chosen width is remembered
+  })
+
+  it('toggles which colours are thickened, and forgets them for a new image', () => {
+    const store = createProjectStore()
+    store.getState().toggleThicken(dark)
+    store.getState().toggleThicken(gold)
+    expect(store.getState().thicken).toEqual([dark, gold])
+    store.getState().toggleThicken(dark)
+    expect(store.getState().thicken).toEqual([gold])
+    store.getState().setSource(source())
+    expect(store.getState().thicken).toEqual([])
+  })
 })

@@ -1,7 +1,7 @@
 import { deltaE } from './color/distance'
 import { mergeSmallIslands } from './cleanup/islands'
 import { type OutlineWhere, addOutlines, suggestOutlines } from './cleanup/outlines'
-import { type ThinPart, findThinParts } from './cleanup/thin'
+import { type ThinPart, findThinParts, thickenLabel } from './cleanup/thin'
 import { denoise } from './image/denoise'
 import { fitToRug } from './image/fitToRug'
 import { FINE_MM_PER_PX, assignLabels } from './quantize/assign'
@@ -30,6 +30,9 @@ export type PipelineInput = {
   minDetailMm: number
   /** Separation outlines, or null when turned off (the default). */
   outlines: { widthMm: number; colour: OKLab; where: OutlineWhere } | null
+  /** Colours whose thin lines the user chose to thicken to minDetailMm ("Thicken"). By colour,
+   *  not label: labels can change between runs. */
+  thicken: OKLab[]
   seed: number
 }
 
@@ -50,7 +53,8 @@ export type PipelineResult = {
 /**
  * The whole image pipeline, from an image to a vector pattern:
  * fit to the rug → denoise → sample → peaks → suggested count → palette → colour map →
- * outlines (only if turned on) → merge small islands → thin-line warnings → vector pattern.
+ * outlines (only if turned on) → merge small islands → thicken chosen colours → thin-line
+ * warnings → vector pattern.
  */
 export function runPipeline(input: PipelineInput): PipelineResult {
   const fitted = fitToRug(input.image, input.rug, FINE_MM_PER_PX)
@@ -78,6 +82,10 @@ export function runPipeline(input: PipelineInput): PipelineResult {
   }
 
   map = mergeSmallIslands(map, input.minDetailMm * input.minDetailMm)
+  for (const colour of input.thicken) {
+    const label = palette.findIndex((p) => deltaE(p, colour) < SAME_COLOUR_DELTA_E)
+    if (label !== -1) map = thickenLabel(map, label, input.minDetailMm)
+  }
   const thin = findThinParts(map, input.minDetailMm)
   // How big one pixel of the original image is on the rug (fitToRug scales by the smaller ratio).
   const sourcePxMm = Math.min(

@@ -220,3 +220,131 @@ button {
   padding: 0.75rem 1.5rem;
   background: #fdecea;
 }
+
+.colours {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.views {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.views figure {
+  margin: 0;
+  background: #fff;
+  border: 1px solid #e3e1db;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+}
+
+.views figcaption {
+  color: #6b6964;
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+}
+
+.view {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: repeating-conic-gradient(#eeece6 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;
+  cursor: crosshair;
+}
+
+.palette ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.palette li {
+  display: grid;
+  grid-template-columns: 1.6rem 1.6rem 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.4rem;
+}
+
+.palette li.highlighted {
+  background: #efede7;
+}
+
+.swatch {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.palette-number {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.palette li input:not([type]) {
+  font: inherit;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  min-width: 0;
+}
+
+.palette li input:not([type]):hover,
+.palette li input:not([type]):focus {
+  border-color: #c9c6be;
+}
+
+.palette code {
+  font-size: 0.8rem;
+  color: #6b6964;
+}
+
+.lock {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.settings h4 {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.settings select {
+  font: inherit;
+  padding: 0.35rem;
+}
+
+.warnings ul {
+  padding-left: 1.1rem;
+  margin: 0;
+}
+
+.warnings li {
+  margin-bottom: 0.4rem;
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 50rem) {
+  .colours {
+    grid-template-columns: 1fr;
+  }
+}

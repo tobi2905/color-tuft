@@ -22,6 +22,8 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
   const locked = useProject((s) =>
     JSON.stringify(s.palette.filter((p) => p.locked).map((p) => p.lab)),
   )
+  const outlines = useProject((s) => JSON.stringify(s.outlines))
+  const thicken = useProject((s) => JSON.stringify(s.thicken))
   const setResult = useProject((s) => s.setResult)
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
     if (!input) return
     const timer = setTimeout(() => run(input), PIPELINE_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [source, widthMm, heightMm, count, minDetailMm, locked, run])
+  }, [source, widthMm, heightMm, count, minDetailMm, locked, outlines, thicken, run])
 
   useEffect(() => {
     if (result) setResult(result)

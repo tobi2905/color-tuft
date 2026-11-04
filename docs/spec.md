@@ -26,6 +26,7 @@ One project runs through six steps; any step can be revisited, and later steps u
    - Change the colour count; swap a colour for a yarn; merge two colours; lock a colour.
    - **Add one colour:** the app adds the colour that improves the match most, keeps the others in place, and shows which one it added.
    - **See where a colour sits:** hovering a palette colour highlights its areas in the image and the pattern; hovering the image shows which colour that spot belongs to.
+   - **Pick a colour from the image:** click a spot on the original; its colour (the median around the spot, so a stray pixel doesn't decide) joins the palette as a locked colour, and the rest is fitted around it.
    - Set the minimum detail size in cm.
    - Optional separation outlines (off by default; see Image pipeline).
    - Touch up with a brush and a fill bucket.
@@ -64,6 +65,8 @@ The pipeline runs in a Web Worker so the page stays responsive. Each step is a s
    - The outline, preview and projector view all use these vectors.
 
 **Touch-ups** (brush, fill, merge, swap) edit the colour map directly; only steps 7 to 9 re-run for the affected area, so edits feel instant.
+
+**Simplify an area:** busy parts, such as a complex background, produce shapes that are hard to tuft. Paint over such a part and choose a detail size: inside it, smaller details merge away and borders are smoothed more strongly; the rest of the design is untouched. Simplified areas are stored with the project and survive re-runs.
 
 ## Outline and rug shape
 
@@ -235,6 +238,7 @@ All decisions were made in the brainstorming session on Nov 4, 2026, unless mark
 | Projector is the transfer method | What most tufters use |
 | Shaped rugs by default, rectangles with a background yarn | Covers both common rug types |
 | Brush and fill touch-up; full editor later | Auto results always need a few fixes; a paint app is a project in itself |
+| Pick a colour by clicking the original; simplify busy areas with a brush (added Nov 4, 2026) | The user often sees the colour that matters; complex backgrounds make shapes too hard to tuft, but the rest of the art should keep its detail |
 | Add one colour picks the colour that improves the match most; hovering shows where each colour sits (added Nov 4, 2026) | Raising the count should add a sensible colour, not reshuffle everything; seeing where a colour sits makes the palette understandable |
 | A design pass before the release (added Nov 4, 2026) | Function first; one consistent look once all six steps exist |
 | Separation outlines as an option, off by default (added Nov 4, 2026) | Common in comic and character rugs, but unwanted in many designs; the app knows the true size, so widths are real cm |

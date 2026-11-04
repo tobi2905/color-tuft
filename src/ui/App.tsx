@@ -1,6 +1,7 @@
 import { Stepper } from './Stepper'
 import { usePipelineSync } from './hooks/usePipelineSync'
 import { STEP_LABELS } from './stepLabels'
+import { ColoursStep } from './steps/ColoursStep'
 import { SetupStep } from './steps/SetupStep'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
@@ -43,6 +44,8 @@ export default function App() {
         <h2>{STEP_LABELS[step]}</h2>
         {step === 'setup' ? (
           <SetupStep />
+        ) : step === 'colours' ? (
+          <ColoursStep />
         ) : (
           <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
         )}

@@ -10,6 +10,14 @@ export type Step = (typeof STEPS)[number]
 /** The uploaded image, already capped in size (see loadImageFile). */
 export type Source = { grid: ImageGrid; name: string; downscaled: boolean }
 
+/** Separation outlines: off by default for every image. colour null = the darkest palette colour. */
+export type OutlineSettings = {
+  enabled: boolean
+  widthMm: number
+  colour: OKLab | null
+  where: 'all' | 'outer'
+}
+
 export type ProjectState = {
   source: Source | null
   rug: RugSize
@@ -20,6 +28,9 @@ export type ProjectState = {
   palette: PaletteEntry[]
   result: PipelineResult | null
   step: Step
+  outlines: OutlineSettings
+  /** Colours whose thin lines are thickened to the minimum detail. */
+  thicken: OKLab[]
 }
 
 export type ProjectActions = {
@@ -32,6 +43,8 @@ export type ProjectActions = {
   setStep(step: Step): void
   toggleLock(number: number): void
   renameColour(number: number, name: string): void
+  setOutlines(change: Partial<OutlineSettings>): void
+  toggleThicken(colour: OKLab): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -50,6 +63,8 @@ const initialState: ProjectState = {
   palette: [],
   result: null,
   step: 'setup',
+  outlines: { enabled: false, widthMm: 10, colour: null, where: 'all' },
+  thicken: [],
 }
 
 /**
@@ -71,8 +86,16 @@ export function createProjectStore() {
       ...initialState,
 
       setSource(source) {
-        // A new image starts its colours from scratch.
-        set({ source, palette: [], result: null, count: null })
+        // A new image starts its colours from scratch; outlines are off again (the spec: never
+        // applied to every artwork), but the chosen width and placement are remembered.
+        set({
+          source,
+          palette: [],
+          result: null,
+          count: null,
+          thicken: [],
+          outlines: { ...get().outlines, enabled: false, colour: null },
+        })
         keepStepValid()
       },
       setRug: (rug) => set({ rug }),
@@ -98,6 +121,12 @@ export function createProjectStore() {
         }),
       renameColour: (number, name) =>
         set({ palette: get().palette.map((p) => (p.number === number ? { ...p, name } : p)) }),
+      setOutlines: (change) => set({ outlines: { ...get().outlines, ...change } }),
+      toggleThicken(colour) {
+        const thicken = get().thicken
+        const i = thicken.findIndex((c) => deltaE(c, colour) < SAME_COLOUR_DELTA_E)
+        set({ thicken: i === -1 ? [...thicken, colour] : thicken.filter((_, j) => j !== i) })
+      },
     }
   })
 }

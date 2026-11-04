@@ -67,7 +67,7 @@ This is a learning project: you review and understand every line before it is co
 | 7 Outline | Cut line, border offset, rectangle mode | 4 |
 | 8 Projector | **Milestone B:** project and tuft the Triforce | 5 |
 | 9 Yarn | Stock, matching, amounts, waste learning | 6 |
-| 10 Touch-ups | Brush, fill, merge, undo | 4 |
+| 10 Touch-ups | Brush, fill, merge, undo, simplify an area | 5 |
 | 11 Storage | Autosave, `.tuft` files, linked folder | 4 |
 | 12 Preview | Yarn mockup for clients | 4 |
 | 13 Release | **Milestone C:** v0.1 public, offline, designed, tested | 4 |
@@ -289,16 +289,16 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: drag-and-drop or file picker, rug width and height in cm (decimal comma accepted, "match image proportions"), shaped or rectangle, colour count (empty = the suggested count: `runPipeline` takes `count: null`); downscale notice from 2.1. `usePipelineSync` re-runs the pipeline in the worker 300 ms after the image or a setting changes and stores the result; the header shows "Working…" and errors (the last good result is kept).
   - Check: invalid sizes (0, negative, over 500 cm) show an inline message.
   - Commit: `feat(ui): setup step`
-- [ ] **6.4 Colours step and pattern canvas.**
-  - Files: `src/ui/steps/ColoursStep.tsx`, `src/render/patternCanvas.ts`, `src/core/labelPoint.ts`, `test/core/labelPoint.test.ts`.
-  - Builds: `poleOfInaccessibility(polygon: Pt[], precisionMm: number): Pt` (the point deepest inside a shape, for numbers); `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button; hovering a palette colour highlights its areas in the original and the pattern, hovering the image or pattern highlights that spot's colour in the palette; an "Outlines" section, off by default, with width in cm, yarn colour and where, and a hint when `outlineSuggestion` finds existing outlines.
+- [X] **6.4 Colours step and pattern canvas.**
+  - Files: `src/ui/steps/ColoursStep.tsx`, `src/render/patternCanvas.ts`, `src/core/labelPoint.ts`, `src/core/labelMap.ts`, `test/core/labelPoint.test.ts`; store and pipeline input extended.
+  - Builds: `poleOfInaccessibility(rings: Pt[][], precisionMm: number): Pt` (outer ring plus holes; the point deepest inside a shape, for numbers; polylabel); `labelAt(map, pt)` in `src/core/labelMap.ts`; `runPipeline` input gains `thicken: OKLab[]` (colours to thicken, by colour since labels change between runs); the store gains `outlines` (off, and back to off for every new image; colour null = the darkest palette colour) and `thicken`; `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button; hovering a palette colour highlights its areas in the original and the pattern, hovering the image or pattern highlights that spot's colour in the palette; an "Outlines" section, off by default, with width in cm, yarn colour and where, and a hint when `outlineSuggestion` finds existing outlines.
   - Tests: a square's label point is its centre; an L-shape's label point lies inside it; `labelAt(map, pt)` gives the colour under a point (for hovering).
   - Check (Milestone A): the Triforce shows 3 regions numbered 1 and the background numbered 2, with straight sides.
   - Commit: `feat(ui): colours step`
-- [ ] **6.5 Add the next best colour.**
-  - Files: `src/core/quantize/palette.ts` (change), `test/core/quantize/palette.test.ts` (extend), `src/ui/steps/ColoursStep.tsx` (extend).
-  - Builds: the splitting stage of `findPalette` stops picking at random: each extra colour is the candidate that reduces the total squared deltaE between samples and their nearest palette colour the most (candidates: the samples' cluster centres, not single noisy pixels). So `count + 1` returns the `count` palette plus one colour, the others unchanged up to k-means refinement. UI: "Add a colour" and "Remove a colour" buttons beside the count; the added colour is briefly highlighted with a note ("Added Colour 6: a darker shade of the yellow").
-  - Tests: a gradient asked for n + 1 colours contains the n colours within deltaE 2; the added colour is the one with the biggest error reduction (checked against brute force on a small set); a 2-colour Triforce asked for one more adds nothing; same input, same result (no randomness left).
+- [ ] **6.5 Add the next best colour, or pick one from the image.**
+  - Files: `src/core/quantize/palette.ts` (change), `src/core/color/sample.ts` (moved forward from 9.2), tests in `test/core/quantize/` and `test/core/color/sample.test.ts`, `src/ui/steps/ColoursStep.tsx` (extend).
+  - Builds: the splitting stage of `findPalette` stops picking at random: each extra colour is the candidate that reduces the total squared deltaE between samples and their nearest palette colour the most (candidates: the samples' cluster centres, not single noisy pixels). So `count + 1` returns the `count` palette plus one colour, the others unchanged up to k-means refinement. UI: "Add a colour" and "Remove a colour" buttons beside the count; the added colour is briefly highlighted with a note ("Added Colour 6: a darker shade of the yellow"). Eyedropper: `sampleColour(img, at, radiusPx)` (per-channel median in OKLab, from 9.2); clicking the original (with "Pick a colour" on) adds that colour as a locked palette entry and raises the count by one; the rug-to-image mapping undoes the fit-and-centre of `fitToRug`.
+  - Tests: a gradient asked for n + 1 colours contains the n colours within deltaE 2; the added colour is the one with the biggest error reduction (checked against brute force on a small set); a 2-colour Triforce asked for one more adds nothing; same input, same result (no randomness left); `sampleColour` on a noisy patch with 10% white highlights returns within deltaE 2 of the true colour; a picked colour comes back exactly in the palette.
   - Commit: `feat: add the next best colour`
 
 ## Phase 7: Outline and rug shape
@@ -367,7 +367,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: adding then removing leaves the list unchanged; `moveToStock` changes only `list`.
   - Commit: `feat(ui): yarn stock and catalogue`
 - [ ] **9.2 Sample colour from a photo.**
-  - Files: `src/core/color/sample.ts`, `test/core/color/sample.test.ts`, `src/ui/yarn/PhotoSampler.tsx`.
+  - Files: `src/ui/yarn/PhotoSampler.tsx` (`sampleColour` and its test already exist from 6.5).
   - Builds: `sampleColour(img: ImageGrid, at: { x: number; y: number }, radiusPx: number): OKLab`, the per-channel median in OKLab, so highlights and shadows on the cone don't skew it. UI: upload a photo, click the cone, name the yarn.
   - Tests: a noisy patch with 10% white highlight pixels returns within deltaE 2 of the true colour.
   - Commit: `feat: yarn colour from photo`
@@ -417,6 +417,11 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: brush and fill tools with size in cm, target colour picked from the numbered palette, merge and swap actions, Ctrl+Z and Ctrl+Shift+Z.
   - Check: painting a missing eye back in and undoing it both work, and the outline updates within a moment.
   - Commit: `feat(ui): touch-up tools`
+- [ ] **10.5 Simplify an area.**
+  - Files: `src/core/edit/simplify.ts`, `test/core/edit/simplify.test.ts`, `src/ui/tools/Toolbar.tsx` (extend), store and pipeline input (extend).
+  - Builds: `simplifyArea(map: LabelMap, mask: Uint8Array, detailMm: number): LabelMap`: inside the painted mask only, islands smaller than `detailMm²` merge (as in 4.2) and borders are smoothed with a majority filter of radius `detailMm / 2` (each pixel takes the most common label around it), repeated until stable; pixels outside the mask never change. Simplified areas are stored as `{ mask, detailMm }` edits and applied in the pipeline after cleanup, so they survive re-runs. UI: a "Simplify" brush with a detail size in cm.
+  - Tests: a speckled background painted over loses every patch below the detail size while the art outside the mask is unchanged pixel for pixel; a jagged border inside the mask becomes smoother (shorter traced border); an empty mask changes nothing.
+  - Commit: `feat: simplify an area`
 
 ## Phase 11: Storage
 
