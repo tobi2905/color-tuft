@@ -168,7 +168,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 **Done when:** any PNG, JPEG or WebP becomes a clean, rug-scaled `ImageGrid`.
 
-- [ ] **2.1 Load images safely.**
+- [X] **2.1 Load images safely.**
   - Files: `src/core/image/capSize.ts`, `src/render/loadImage.ts`, `test/core/image/capSize.test.ts`.
   - Builds: `capSize(w: number, h: number, maxSide = 4096): { width: number; height: number; downscaled: boolean }` (pure); `loadImageFile(file: File): Promise<{ grid: ImageGrid; downscaled: boolean }>` via `createImageBitmap` and `OffscreenCanvas`. Unsupported types reject with `Unsupported image type. Use PNG, JPEG or WebP.`
   - Tests: `capSize(8000, 6000)` gives 4096 × 3072 and `downscaled: true`; `capSize(800, 600)` unchanged. Check: loading a large phone photo in the browser shows the notice and doesn't freeze.
