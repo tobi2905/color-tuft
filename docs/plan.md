@@ -51,7 +51,7 @@ This is a learning project: you review and understand every line before it is co
 - Every colour shown in the UI carries its number and name.
 - No network requests besides loading the app; images never leave the device.
 - Deterministic output: any randomness uses a seeded generator.
-- English UI, MIT licence.
+- English UI, AGPL-3.0 licence (changed from MIT after 7.2); the app links to its source code.
 
 **Phases and milestones** (rough effort in 1–3 h sessions):
 
@@ -127,7 +127,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 **Done when:** the repo builds, tests run, and every push to `main` deploys a page to GitHub Pages.
 
 - [X] **0.1 Create the project.**
-  - Builds: public GitHub repo `color-tuft`, Vite React TypeScript template, `strict: true`, folders `src/core`, `src/render`, `src/ui`, `src/storage`, `src/worker`, `test/fixtures`, `docs/`. Spec and this plan copied to `docs/spec.md` and `docs/plan.md`. `LICENSE` (MIT), short `README.md`.
+  - Builds: public GitHub repo `color-tuft`, Vite React TypeScript template, `strict: true`, folders `src/core`, `src/render`, `src/ui`, `src/storage`, `src/worker`, `test/fixtures`, `docs/`. Spec and this plan copied to `docs/spec.md` and `docs/plan.md`. `LICENSE` (MIT; changed to AGPL-3.0 after 7.2), short `README.md`.
   - Check: `npm run dev` opens the starter page.
   - Walkthrough: Vite's project layout, what each `tsconfig` strict option catches.
   - Commit: `chore: scaffold Vite React TS project`

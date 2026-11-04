@@ -157,7 +157,7 @@ The projector view opens in its own window on the projector, while a control pan
 
 ## Architecture, data and storage
 
-A browser-only app: Vite, React and TypeScript, Zustand for state, Canvas for drawing, image work in Web Workers. Installable as an offline app (PWA), MIT licence, deployed to GitHub Pages.
+A browser-only app: Vite, React and TypeScript, Zustand for state, Canvas for drawing, image work in Web Workers. Installable as an offline app (PWA), AGPL-3.0 licence (the app links to its source code), deployed to GitHub Pages.
 
 **Modules** (`core` is plain TypeScript with no browser dependencies, so it is unit-testable):
 
@@ -257,6 +257,7 @@ All decisions were made in the brainstorming session on Nov 4, 2026, unless mark
 | Preview as a labelled mockup (texture, carving, edge) | Photorealism is not reachable; a mockup is enough for clients |
 | Browser-only: React, TypeScript, Vite, own image pipeline | Free hosting, offline, no uploads, good learning value |
 | Hybrid storage: browser plus `.tuft` files plus optional linked folder | Zero setup, but you own your files |
+| Licence AGPL-3.0 instead of MIT (changed Nov 4, 2026) | Stays open source, but nobody can sell or host a closed copy: changed versions, also run as a website, must publish their source |
 
 **Open questions:**
 

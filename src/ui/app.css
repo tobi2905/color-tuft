@@ -412,3 +412,13 @@ button.link {
 .view.picking {
   cursor: copy;
 }
+
+.app-footer {
+  padding: 1.5rem;
+  color: #6b6964;
+  font-size: 0.85rem;
+}
+
+.app-footer a {
+  color: inherit;
+}

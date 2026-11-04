@@ -50,6 +50,10 @@ export default function App() {
           <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
         )}
       </main>
+      <footer className="app-footer">
+        <a href="https://github.com/tobi2905/color-tuft">Source code</a> · Free software under the{' '}
+        <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>
+      </footer>
     </div>
   )
 }
