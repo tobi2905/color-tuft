@@ -71,4 +71,12 @@ describe('pipelineInputFrom', () => {
     store.getState().toggleThicken(dark)
     expect(pipelineInputFrom(store.getState())!.thicken).toEqual([dark])
   })
+
+  it('passes the merges (colours only)', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setResult({ palette: [gold, dark], suggestedCount: 2 } as PipelineResult)
+    store.getState().mergeColour(1, 2)
+    expect(pipelineInputFrom(store.getState())!.merges).toEqual([{ from: gold, into: dark }])
+  })
 })

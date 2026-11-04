@@ -21,6 +21,7 @@ const base = (overrides: Partial<PipelineInput> = {}): PipelineInput => ({
   minDetailMm: 10,
   outlines: null,
   thicken: [],
+  merges: [],
   seed: 1,
   ...overrides,
 })
@@ -100,6 +101,21 @@ describe('runPipeline', () => {
     expect(runPipeline(base({ locked: [red], count: 3 })).palette).toContainEqual(red)
   })
 
+  it('counts merged colours correctly when outlines add a colour too', () => {
+    const lineArt = base({ image: thinOutline(400, 6), count: 3, minDetailMm: 4 })
+    const before = runPipeline(lineArt)
+    const red = before.palette.find((p) => deltaE(p, srgbToOklab(FIXTURE.red)) < 3)!
+    const white = before.palette.find((p) => p.L > 0.9)!
+    const blue = srgbToOklab(FIXTURE.blue)
+    const after = runPipeline({
+      ...lineArt,
+      merges: [{ from: red, into: white }],
+      outlines: { widthMm: 5, colour: blue, where: 'outer' },
+    })
+    expect(after.mergedAway).toBe(1)
+    expect(after.palette).toHaveLength(3) // white, black, plus the blue outline
+  })
+
   it('adds outlines only when asked, as a new palette colour', () => {
     expect(runPipeline(base()).palette).toHaveLength(2)
     const black = srgbToOklab(FIXTURE.black)
@@ -137,6 +153,27 @@ describe('runPipeline', () => {
     expect(before.thin.some((t) => t.label === blackLabel)).toBe(true)
     const after = runPipeline({ ...lineArt, thicken: [before.palette[blackLabel]] })
     expect(after.thin.some((t) => t.label === blackLabel)).toBe(false)
+  })
+
+  it('merges one colour into another and leaves the rest as it was', () => {
+    const lineArt = base({ image: thinOutline(400, 6), count: 3, minDetailMm: 4 })
+    const before = runPipeline(lineArt)
+    const red = before.palette.find((p) => deltaE(p, srgbToOklab(FIXTURE.red)) < 3)!
+    const black = before.palette.find((p) => deltaE(p, srgbToOklab(FIXTURE.black)) < 3)!
+    const after = runPipeline({ ...lineArt, merges: [{ from: red, into: black }] })
+    expect(after.palette).toHaveLength(2)
+    expect(after.mergedAway).toBe(1)
+    expect(after.palette).toContainEqual(black)
+    expect(after.palette.some((p) => deltaE(p, red) < 3)).toBe(false)
+    // Nothing else reshuffles: white is exactly the same colour, covering the same area within
+    // 1% (cleanup may settle a few edge pixels differently next to the now bigger black).
+    const white = before.palette.find((p) => p.L > 0.9)!
+    expect(after.palette).toContainEqual(white)
+    const area = (r: typeof before, c: typeof white) =>
+      r.map.labels.filter((l) => l === r.palette.findIndex((p) => deltaE(p, c) < 1e-9)).length
+    expect(Math.abs(area(after, white) - area(before, white)) / area(before, white)).toBeLessThan(
+      0.01,
+    )
   })
 
   it('gives the same result for the same input', () => {

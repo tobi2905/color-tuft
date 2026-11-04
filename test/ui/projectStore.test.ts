@@ -156,4 +156,33 @@ describe('project store', () => {
     store.getState().setSource(source())
     expect(store.getState().thicken).toEqual([])
   })
+
+  it('remembers a merge by colour, with the merged colour name for the undo list', () => {
+    const store = createProjectStore()
+    store.getState().setResult(resultWith([gold, red, dark]))
+    store.getState().renameColour(2, 'Fiery')
+    store.getState().mergeColour(2, 3)
+    expect(store.getState().merges).toEqual([
+      { from: red, into: dark, fromName: 'Fiery', fromHex: store.getState().palette[1].hex },
+    ])
+  })
+
+  it('ignores merging a colour into itself or into a number that does not exist', () => {
+    const store = createProjectStore()
+    store.getState().setResult(resultWith([gold, dark]))
+    store.getState().mergeColour(1, 1)
+    store.getState().mergeColour(1, 9)
+    expect(store.getState().merges).toEqual([])
+  })
+
+  it('undoes a merge, and forgets all merges for a new image', () => {
+    const store = createProjectStore()
+    store.getState().setResult(resultWith([gold, red, dark]))
+    store.getState().mergeColour(2, 3)
+    store.getState().mergeColour(1, 3)
+    store.getState().undoMerge(0)
+    expect(store.getState().merges.map((m) => m.from)).toEqual([gold])
+    store.getState().setSource(source())
+    expect(store.getState().merges).toEqual([])
+  })
 })

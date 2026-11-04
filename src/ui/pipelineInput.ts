@@ -27,6 +27,7 @@ export function pipelineInputFrom(state: ProjectState): PipelineInput | null {
         }
       : null,
     thicken: state.thicken,
+    merges: state.merges.map(({ from, into }) => ({ from, into })),
     seed: PIPELINE_SEED,
   }
 }

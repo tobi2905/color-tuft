@@ -176,6 +176,13 @@ function veil(map: LabelMap, label: number): HTMLCanvasElement {
 function PaletteList({ palette, highlight, onHover }: { palette: PaletteEntry[] } & HoverProps) {
   const toggleLock = useProject((s) => s.toggleLock)
   const renameColour = useProject((s) => s.renameColour)
+  const mergeColour = useProject((s) => s.mergeColour)
+  const merges = useProject((s) => s.merges)
+  const undoMerge = useProject((s) => s.undoMerge)
+  const intoName = (lab: PaletteEntry['lab']) => {
+    const p = palette.find((e) => deltaE(e.lab, lab) < 10)
+    return p ? `Colour ${p.number} (${p.name})` : 'a colour that is no longer there'
+  }
   return (
     <section className="card palette">
       <h3>Colours</h3>
@@ -199,9 +206,43 @@ function PaletteList({ palette, highlight, onHover }: { palette: PaletteEntry[] 
               <input type="checkbox" checked={p.locked} onChange={() => toggleLock(p.number)} />
               Locked
             </label>
+            <select
+              aria-label={`Merge colour ${p.number} into another colour`}
+              value=""
+              onChange={(e) => mergeColour(p.number, Number(e.target.value))}
+            >
+              <option value="">Merge into…</option>
+              {palette
+                .filter((o) => o.number !== p.number)
+                .map((o) => (
+                  <option key={o.number} value={o.number}>
+                    Colour {o.number} ({o.name})
+                  </option>
+                ))}
+            </select>
           </li>
         ))}
       </ol>
+      {merges.length > 0 && (
+        <div className="merges">
+          <h4>Merged</h4>
+          <ul>
+            {merges.map((m, i) => (
+              <li key={i}>
+                <span
+                  className="swatch small"
+                  style={{ background: m.fromHex }}
+                  aria-hidden="true"
+                />
+                {m.fromName} ({m.fromHex}) → {intoName(m.into)}{' '}
+                <button type="button" className="link" onClick={() => undoMerge(i)}>
+                  undo
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <p className="hint">Hover a colour, or a spot on either picture, to see where it sits.</p>
     </section>
   )
@@ -255,6 +296,8 @@ function Settings() {
       </label>
       <p className="hint">
         This art has {suggested} colours.{' '}
+        {result.mergedAway > 0 &&
+          `${palette.length} in the pattern (${result.mergedAway} merged). `}
         {count !== null && (
           <button type="button" className="link" onClick={() => setCount(null)}>
             Use {suggested}
@@ -278,6 +321,9 @@ function Settings() {
         Areas smaller than this square are merged into a neighbour; thinner lines are flagged.
       </p>
 
+      {thinByLabel.size === 0 && (
+        <p className="hint">No lines thinner than {minDetailMm / 10} cm.</p>
+      )}
       {thinByLabel.size > 0 && (
         <div className="warnings">
           <h4>Too thin to tuft</h4>

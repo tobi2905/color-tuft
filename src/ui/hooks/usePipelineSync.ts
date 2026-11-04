@@ -24,6 +24,7 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
   )
   const outlines = useProject((s) => JSON.stringify(s.outlines))
   const thicken = useProject((s) => JSON.stringify(s.thicken))
+  const merges = useProject((s) => JSON.stringify(s.merges.map(({ from, into }) => [from, into])))
   const setResult = useProject((s) => s.setResult)
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
     if (!input) return
     const timer = setTimeout(() => run(input), PIPELINE_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [source, widthMm, heightMm, count, minDetailMm, locked, outlines, thicken, run])
+  }, [source, widthMm, heightMm, count, minDetailMm, locked, outlines, thicken, merges, run])
 
   useEffect(() => {
     if (result) setResult(result)

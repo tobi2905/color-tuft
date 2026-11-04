@@ -5,6 +5,7 @@ import { type ThinPart, findThinParts, thickenLabel } from './cleanup/thin'
 import { denoise } from './image/denoise'
 import { fitToRug } from './image/fitToRug'
 import { FINE_MM_PER_PX, assignLabels } from './quantize/assign'
+import { type ColourMerge, applyMerges } from './quantize/merge'
 import { findPalette } from './quantize/palette'
 import { findPeaks } from './quantize/peaks'
 import { samplePixels } from './quantize/sample'
@@ -33,6 +34,8 @@ export type PipelineInput = {
   /** Colours whose thin lines the user chose to thicken to minDetailMm ("Thicken"). By colour,
    *  not label: labels can change between runs. */
   thicken: OKLab[]
+  /** Colours the user chose to merge into another ("Merge into…"). */
+  merges: ColourMerge[]
   seed: number
 }
 
@@ -48,11 +51,13 @@ export type PipelineResult = {
   thin: ThinPart[]
   /** A palette label that already works as outlines in the art, or null. */
   outlineSuggestion: number | null
+  /** How many found colours were merged into others: found = palette.length + mergedAway. */
+  mergedAway: number
 }
 
 /**
  * The whole image pipeline, from an image to a vector pattern:
- * fit to the rug → denoise → sample → peaks → suggested count → palette → colour map →
+ * fit to the rug → denoise → sample → peaks → suggested count → palette → colour map → merges →
  * outlines (only if turned on) → merge small islands → thicken chosen colours → thin-line
  * warnings → vector pattern.
  */
@@ -62,13 +67,16 @@ export function runPipeline(input: PipelineInput): PipelineResult {
 
   const samples = samplePixels(clean, SAMPLE_COUNT, input.seed)
   const suggestedCount = suggestCount(findPeaks(samples))
-  const palette = findPalette(samples, {
+  const found = findPalette(samples, {
     count: input.count ?? suggestedCount,
     locked: input.locked,
     seed: input.seed,
   })
 
-  let map = assignLabels(clean, palette, FINE_MM_PER_PX)
+  const merged = applyMerges(assignLabels(clean, found, FINE_MM_PER_PX), found, input.merges)
+  const mergedAway = found.length - merged.palette.length
+  const palette = [...merged.palette] // a copy: an outline colour may be added below
+  let map = merged.map
   const outlineSuggestion = suggestOutlines(map, palette)
 
   if (input.outlines) {
@@ -94,5 +102,5 @@ export function runPipeline(input: PipelineInput): PipelineResult {
   )
   const pattern = buildPattern(map, input.rug, { sourcePxMm })
 
-  return { palette, suggestedCount, map, pattern, thin, outlineSuggestion }
+  return { palette, suggestedCount, map, pattern, thin, outlineSuggestion, mergedAway }
 }

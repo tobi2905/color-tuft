@@ -265,7 +265,7 @@ button {
 
 .palette li {
   display: grid;
-  grid-template-columns: 1.6rem 1.6rem 1fr auto auto;
+  grid-template-columns: 1.6rem 1.6rem 1fr auto auto auto;
   gap: 0.5rem;
   align-items: center;
   padding: 0.3rem 0.4rem;
@@ -347,4 +347,34 @@ button.link {
   .colours {
     grid-template-columns: 1fr;
   }
+}
+
+.palette select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.2rem;
+  max-width: 9rem;
+}
+
+.merges h4 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.merges ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.merges li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.swatch.small {
+  width: 1rem;
+  height: 1rem;
 }

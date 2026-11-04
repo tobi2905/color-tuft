@@ -63,7 +63,7 @@ This is a learning project: you review and understand every line before it is co
 | 3 Colour reduction | Palette, suggested count, colour map | 4 |
 | 4 Cleanup | Islands removed, thin lines flagged and thickened | 3 |
 | 5 Smooth tracing | Clean vector pattern; full pipeline in tests | 5–6 |
-| 6 First app slice | **Milestone A:** see your art as a numbered pattern in the browser | 5 |
+| 6 First app slice | **Milestone A:** see your art as a numbered pattern in the browser | 6 |
 | 7 Outline | Cut line, border offset, rectangle mode | 4 |
 | 8 Projector | **Milestone B:** project and tuft the Triforce | 5 |
 | 9 Yarn | Stock, matching, amounts, waste learning | 6 |
@@ -295,7 +295,12 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: a square's label point is its centre; an L-shape's label point lies inside it; `labelAt(map, pt)` gives the colour under a point (for hovering).
   - Check (Milestone A): the Triforce shows 3 regions numbered 1 and the background numbered 2, with straight sides.
   - Commit: `feat(ui): colours step`
-- [ ] **6.5 Add the next best colour, or pick one from the image.**
+- [X] **6.5 Merge two colours.**
+  - Files: `src/core/quantize/merge.ts`, `test/core/quantize/merge.test.ts`, pipeline, store, pipeline input and `src/ui/steps/ColoursStep.tsx` (extend).
+  - Builds: `applyMerges(map: LabelMap, palette: OKLab[], merges: { from: OKLab; into: OKLab }[]): { map; palette }`: each merge finds its two palette colours (nearest within deltaE 10, by colour since labels change between runs), relabels every `from` pixel to `into` and drops `from` from the palette; chains resolve, a merge that would form a loop is skipped. The pipeline applies merges right after assigning the colour map (before outlines and cleanup) and reports `mergedAway`. The count stays "colours found", so merging means one colour fewer and nothing else reshuffles. UI: "Merge into…" per palette row, a list of merges with undo; merges reset for every new image. Also: "No lines thinner than N cm" when there is nothing to flag.
+  - Tests: merging one of three colours leaves two, with every pixel of the merged colour now the other; a slightly shifted colour still finds its match; an unknown colour changes nothing; A into B into C ends as C; a loop is skipped; the pipeline drops the merged colour from line art and keeps every other colour unchanged.
+  - Commit: `feat: merge two colours`
+- [ ] **6.6 Add the next best colour, or pick one from the image.**
   - Files: `src/core/quantize/palette.ts` (change), `src/core/color/sample.ts` (moved forward from 9.2), tests in `test/core/quantize/` and `test/core/color/sample.test.ts`, `src/ui/steps/ColoursStep.tsx` (extend).
   - Builds: the splitting stage of `findPalette` stops picking at random: each extra colour is the candidate that reduces the total squared deltaE between samples and their nearest palette colour the most (candidates: the samples' cluster centres, not single noisy pixels). So `count + 1` returns the `count` palette plus one colour, the others unchanged up to k-means refinement. UI: "Add a colour" and "Remove a colour" buttons beside the count; the added colour is briefly highlighted with a note ("Added Colour 6: a darker shade of the yellow"). Eyedropper: `sampleColour(img, at, radiusPx)` (per-channel median in OKLab, from 9.2); clicking the original (with "Pick a colour" on) adds that colour as a locked palette entry and raises the count by one; the rug-to-image mapping undoes the fit-and-centre of `fitToRug`.
   - Tests: a gradient asked for n + 1 colours contains the n colours within deltaE 2; the added colour is the one with the biggest error reduction (checked against brute force on a small set); a 2-colour Triforce asked for one more adds nothing; same input, same result (no randomness left); `sampleColour` on a noisy patch with 10% white highlights returns within deltaE 2 of the true colour; a picked colour comes back exactly in the palette.
@@ -367,7 +372,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: adding then removing leaves the list unchanged; `moveToStock` changes only `list`.
   - Commit: `feat(ui): yarn stock and catalogue`
 - [ ] **9.2 Sample colour from a photo.**
-  - Files: `src/ui/yarn/PhotoSampler.tsx` (`sampleColour` and its test already exist from 6.5).
+  - Files: `src/ui/yarn/PhotoSampler.tsx` (`sampleColour` and its test already exist from 6.6).
   - Builds: `sampleColour(img: ImageGrid, at: { x: number; y: number }, radiusPx: number): OKLab`, the per-channel median in OKLab, so highlights and shadows on the cone don't skew it. UI: upload a photo, click the cone, name the yarn.
   - Tests: a noisy patch with 10% white highlight pixels returns within deltaE 2 of the true colour.
   - Commit: `feat: yarn colour from photo`

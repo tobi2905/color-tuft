@@ -10,6 +10,9 @@ export type Step = (typeof STEPS)[number]
 /** The uploaded image, already capped in size (see loadImageFile). */
 export type Source = { grid: ImageGrid; name: string; downscaled: boolean }
 
+/** A colour merged into another, with what the merged colour looked like (for the undo list). */
+export type MergeRecord = { from: OKLab; into: OKLab; fromName: string; fromHex: string }
+
 /** Separation outlines: off by default for every image. colour null = the darkest palette colour. */
 export type OutlineSettings = {
   enabled: boolean
@@ -31,6 +34,8 @@ export type ProjectState = {
   outlines: OutlineSettings
   /** Colours whose thin lines are thickened to the minimum detail. */
   thicken: OKLab[]
+  /** Colours merged into others, in the order chosen. */
+  merges: MergeRecord[]
 }
 
 export type ProjectActions = {
@@ -45,6 +50,8 @@ export type ProjectActions = {
   renameColour(number: number, name: string): void
   setOutlines(change: Partial<OutlineSettings>): void
   toggleThicken(colour: OKLab): void
+  mergeColour(fromNumber: number, intoNumber: number): void
+  undoMerge(index: number): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -65,6 +72,7 @@ const initialState: ProjectState = {
   step: 'setup',
   outlines: { enabled: false, widthMm: 10, colour: null, where: 'all' },
   thicken: [],
+  merges: [],
 }
 
 /**
@@ -94,6 +102,7 @@ export function createProjectStore() {
           result: null,
           count: null,
           thicken: [],
+          merges: [],
           outlines: { ...get().outlines, enabled: false, colour: null },
         })
         keepStepValid()
@@ -122,6 +131,15 @@ export function createProjectStore() {
       renameColour: (number, name) =>
         set({ palette: get().palette.map((p) => (p.number === number ? { ...p, name } : p)) }),
       setOutlines: (change) => set({ outlines: { ...get().outlines, ...change } }),
+      mergeColour(fromNumber, intoNumber) {
+        const palette = get().palette
+        const from = palette.find((p) => p.number === fromNumber)
+        const into = palette.find((p) => p.number === intoNumber)
+        if (!from || !into || from === into) return
+        const record = { from: from.lab, into: into.lab, fromName: from.name, fromHex: from.hex }
+        set({ merges: [...get().merges, record] })
+      },
+      undoMerge: (index) => set({ merges: get().merges.filter((_, i) => i !== index) }),
       toggleThicken(colour) {
         const thicken = get().thicken
         const i = thicken.findIndex((c) => deltaE(c, colour) < SAME_COLOUR_DELTA_E)
