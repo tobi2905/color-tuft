@@ -259,11 +259,28 @@ describe('project store', () => {
   })
 
   it('starts the projector mirrored and uncalibrated', () => {
-    expect(createProjectStore().getState().projector).toEqual({
-      pxPerMm: null,
-      factor: 1,
-      offsetPx: { x: 0, y: 0 },
-      mirror: true,
+    const p = createProjectStore().getState().projector
+    expect([p.pxPerMm, p.factor, p.offsetPx, p.mirror]).toEqual([null, 1, { x: 0, y: 0 }, true])
+  })
+
+  it('shows outlines, numbers and the cut line on the projector by default, no grid', () => {
+    expect(createProjectStore().getState().projector.layers).toEqual({
+      outlines: true,
+      lineWidthPx: 2,
+      numbers: true,
+      fontMm: 30,
+      cut: true,
+      grid: false,
+    })
+  })
+
+  it('switches projector layers one at a time', () => {
+    const store = createProjectStore()
+    store.getState().setLayers({ grid: true, fontMm: 50 })
+    expect(store.getState().projector.layers).toMatchObject({
+      grid: true,
+      fontMm: 50,
+      numbers: true,
     })
   })
 

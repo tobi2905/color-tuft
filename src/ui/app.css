@@ -514,3 +514,23 @@ button.link {
   border: none;
   text-decoration: underline;
 }
+
+.mode-switch {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.mode-switch button {
+  flex: 1;
+  padding: 0.4rem;
+  border: 1px solid #1d1d1f;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.mode-switch button[aria-selected='true'] {
+  background: #1d1d1f;
+  color: #fff;
+}

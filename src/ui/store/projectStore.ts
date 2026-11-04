@@ -4,6 +4,7 @@ import { deltaE } from '../../core/color/distance'
 import type { PipelineResult } from '../../core/pipeline'
 import type { BackgroundEdit } from '../../core/outline/backgroundEdits'
 import type { ImageGrid, OKLab, PaletteEntry, Pt, RugSize } from '../../core/types'
+import type { LayerOptions } from '../../render/projector/layers'
 import { calibrationFactor } from '../../render/projector/transform'
 
 export const STEPS = ['setup', 'colours', 'outline', 'preview', 'yarn', 'projector'] as const
@@ -52,7 +53,14 @@ export type ProjectState = {
   backgroundColour: OKLab | null
   /** Projector: starting scale (screen px per mm, set once), calibration correction, nudge
    *  (px) and mirroring (on by default: tufting is done from the back of the cloth). */
-  projector: { pxPerMm: number | null; factor: number; offsetPx: Pt; mirror: boolean }
+  projector: {
+    pxPerMm: number | null
+    factor: number
+    offsetPx: Pt
+    mirror: boolean
+    /** Which pattern layers the projector shows. */
+    layers: LayerOptions
+  }
 }
 
 export type ProjectActions = {
@@ -80,6 +88,7 @@ export type ProjectActions = {
   resetCalibration(): void
   nudge(dx: number, dy: number): void
   setMirror(mirror: boolean): void
+  setLayers(change: Partial<LayerOptions>): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -108,7 +117,13 @@ const initialState: ProjectState = {
   backgroundEdits: [],
   borderColour: null,
   backgroundColour: null,
-  projector: { pxPerMm: null, factor: 1, offsetPx: { x: 0, y: 0 }, mirror: true },
+  projector: {
+    pxPerMm: null,
+    factor: 1,
+    offsetPx: { x: 0, y: 0 },
+    mirror: true,
+    layers: { outlines: true, lineWidthPx: 2, numbers: true, fontMm: 30, cut: true, grid: false },
+  },
 }
 
 /**
@@ -221,6 +236,10 @@ export function createProjectStore() {
         })
       },
       setMirror: (mirror) => set({ projector: { ...get().projector, mirror } }),
+      setLayers: (change) =>
+        set({
+          projector: { ...get().projector, layers: { ...get().projector.layers, ...change } },
+        }),
       setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
       mergeColour(fromNumber, intoNumber) {
         const palette = get().palette

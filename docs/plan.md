@@ -348,10 +348,10 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: rug bounding frame with corner crosshairs, a 10 cm bar and a 10 × 10 cm square outside the rug area (below it if there is room, else above, right or left, else in a corner); input "I measured __ cm" (each measurement corrects on top of the last: factor × 100 / measured); Reset; arrow keys nudge 1 px, Shift + arrow 10 px; mirror on by default (tufting from the back); the starting scale is set once, to fit the whole rug, so a calibration stays valid; a Fullscreen button for the projector; in fullscreen a faint "Adjust" button in the corner opens the same controls (Hide folds them away). After applying a measurement the field lets go of the keyboard, so the arrow keys work at once.
   - Check: on your monitor, set the measured value from a ruler; the bar then measures 10.0 cm.
   - Commit: `feat: projector calibration`
-- [ ] **8.3 Pattern layers.**
-  - Files: `src/render/projector/layers.ts`, `src/render/projector/labels.ts`, `test/render/labels.test.ts`.
-  - Builds: white lines on black with adjustable thickness; numbers at each region's label point; regions too small for the number at the current font size get the number outside with a short pointer line; dashed cut line; cm grid; mirror. Each layer can be switched on and off.
-  - Tests: `placeLabels(regions, fontMm)` puts no two labels on top of each other; a 5 mm region gets an outside label with a pointer.
+- [X] **8.3 Pattern layers.**
+  - Files: `src/render/projector/layers.ts` (`drawProjectorPattern`), `src/render/projector/labels.ts` (`placeLabels`, tested), `test/render/labels.test.ts`; `regionLabelPoints` and `edgesPath` exported from `patternCanvas.ts`; `src/ui/projector/ProjectorStep.tsx` (Calibrate | Pattern modes, replacing the calibration-only view); the store gains `projector.layers`.
+  - Builds: white lines on black with adjustable thickness (screen px); numbers at each region's label point, sized in cm on the cloth; regions too small for the number at the current size get the number outside with a short pointer line (biggest areas first, 8 directions at growing distances, first free spot); dashed cut line; grid every 10 cm; mirror. Grid, outlines and cut line go through the projector transform (mirrored with it); numbers and pointers are drawn in screen space, so digits are never mirrored. Each layer can be switched on and off, also from the fullscreen overlay.
+  - Tests: `placeLabels` puts no two labels on top of each other, also in a crowd of 36 tiny areas; a 5 mm region gets an outside label with a pointer; an inside label moves out when a bigger area's label is already there; boxes fit the text.
   - Commit: `feat(render): projector layers`
 - [ ] **8.4 One colour at a time.**
   - Files: `src/render/projector/focus.ts`, `src/ui/projector/ControlPanel.tsx`.

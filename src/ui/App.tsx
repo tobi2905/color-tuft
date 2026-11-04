@@ -3,7 +3,7 @@ import { usePipelineSync } from './hooks/usePipelineSync'
 import { STEP_LABELS } from './stepLabels'
 import { ColoursStep } from './steps/ColoursStep'
 import { OutlineStep } from './steps/OutlineStep'
-import { CalibrationView } from './projector/CalibrationView'
+import { ProjectorStep } from './projector/ProjectorStep'
 import { SetupStep } from './steps/SetupStep'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
@@ -49,7 +49,7 @@ export default function App() {
         ) : step === 'outline' ? (
           <OutlineStep />
         ) : step === 'projector' ? (
-          <CalibrationView />
+          <ProjectorStep />
         ) : (
           <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
         )}

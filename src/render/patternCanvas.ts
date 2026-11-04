@@ -85,6 +85,20 @@ function prepare(pattern: VectorPattern): Prepared {
       else edges.bezierCurveTo(s.c1.x, s.c1.y, s.c2.x, s.c2.y, s.to.x, s.to.y)
     }
   }
+  const prepared = { paths, edges, labels: regionLabelPoints(pattern) }
+  cache.set(pattern, prepared)
+  return prepared
+}
+
+const labelCache = new WeakMap<VectorPattern, { at: Pt; roomMm: number }[]>()
+
+/**
+ * Where each region's number goes (its deepest point) and how much free space is around it,
+ * in mm, in the order of pattern.regions. Computed once per pattern.
+ */
+export function regionLabelPoints(pattern: VectorPattern): { at: Pt; roomMm: number }[] {
+  const cached = labelCache.get(pattern)
+  if (cached) return cached
   const labels = pattern.regions.map((r) => {
     const polygons = r.rings.map((ring) => ringToPolygon(pattern, ring, 8))
     // Outer ring first: it is the one with the largest area.
@@ -92,9 +106,13 @@ function prepare(pattern: VectorPattern): Prepared {
     const at = poleOfInaccessibility(polygons, 1)
     return { at, roomMm: distanceToEdges(at, polygons) }
   })
-  const prepared = { paths, edges, labels }
-  cache.set(pattern, prepared)
-  return prepared
+  labelCache.set(pattern, labels)
+  return labels
+}
+
+/** Every border once, as one path (mm). */
+export function edgesPath(pattern: VectorPattern): Path2D {
+  return prepare(pattern).edges
 }
 
 /** A region as one path: each ring traced along its edges, backwards where marked. */
