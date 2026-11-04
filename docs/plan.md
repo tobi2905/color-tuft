@@ -157,7 +157,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Builds: `deltaE(a: OKLab, b: OKLab): number` (Euclidean distance × 100), `matchRating(d: number): 'very-close' | 'close' | 'noticeable'` with thresholds `VERY_CLOSE = 3`, `CLOSE = 8` exported as constants (tuned later).
   - Tests: identical colours give 0 and `'very-close'`; black vs white gives `'noticeable'`; `deltaE(a, b) === deltaE(b, a)`.
   - Commit: `feat(core): colour distance and ratings`
-- [ ] **1.3 Generated test images.**
+- [X] **1.3 Generated test images.**
   - Files: `test/fixtures/images.ts`, `test/fixtures/random.ts`, `test/fixtures/images.test.ts`.
   - Builds: `seededRandom(seed: number): () => number`; image makers returning `ImageGrid`: `triforce(sizePx)`, `circle(sizePx)`, `gradientCircle(sizePx, steps)`, `thinOutline(sizePx, lineWidthPx)`, `smallEye(sizePx, eyeShare)` (large face with a tiny distinct dot), `sixColours(sizePx)`; modifiers `withJpegNoise(img, amplitude, seed)`, `withSoftAlpha(img, featherPx)`.
   - Tests: `triforce` has exactly 2 distinct colours; `circle(1000)` coloured area within 1% of πr²; `withSoftAlpha` produces alpha values strictly between 0 and 255 at the edge.
@@ -219,7 +219,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 - [ ] **4.1 Find connected regions. (you write)**
   - Files: `src/core/cleanup/regions.ts`, `test/core/cleanup/regions.test.ts`.
   - Builds: `connectedRegions(map: LabelMap): { ids: Int32Array; regions: { id: number; label: number; areaPx: number; bbox: [number, number, number, number] }[] }`, 4-connected flood fill with an explicit stack (no recursion).
-  - Tests: `triforce` gives 3 gold regions (corner-touching triangles stay separate) and 2 background regions; `NO_LABEL` pixels form no region.
+  - Tests: `triforce` gives 3 gold regions and 1 background region (the fixture has small gaps between the triangles, so the middle hole joins the outside; see 1.3); `NO_LABEL` pixels form no region.
   - Walkthrough: 4- vs 8-connectivity and why recursion overflows on big rugs.
   - Commit: `feat(core): connected regions`
 - [ ] **4.2 Merge small islands.**
