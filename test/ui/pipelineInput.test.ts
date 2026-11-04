@@ -79,4 +79,14 @@ describe('pipelineInputFrom', () => {
     store.getState().mergeColour(1, 2)
     expect(pipelineInputFrom(store.getState())!.merges).toEqual([{ from: gold, into: dark }])
   })
+
+  it('passes picked colours as locked, without duplicates', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setResult({ palette: [gold, dark], suggestedCount: 2 } as PipelineResult)
+    const red = srgbToOklab({ r: 214, g: 40, b: 40 })
+    store.getState().addPickedColour(red)
+    store.getState().setResult({ palette: [gold, red, dark], suggestedCount: 2 } as PipelineResult)
+    expect(pipelineInputFrom(store.getState())!.locked).toEqual([red])
+  })
 })

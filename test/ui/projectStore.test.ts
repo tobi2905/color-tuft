@@ -185,4 +185,37 @@ describe('project store', () => {
     store.getState().setSource(source())
     expect(store.getState().merges).toEqual([])
   })
+
+  it('adds a picked colour as a locked colour and raises the count by one', () => {
+    const store = createProjectStore()
+    store.getState().setSource(source())
+    store.getState().setResult(resultWith([gold, dark]))
+    store.getState().addPickedColour(red)
+    expect(store.getState().picked).toEqual([red])
+    expect(store.getState().count).toBe(3) // the suggested 2, plus one
+    store.getState().setResult(resultWith([gold, red, dark]))
+    expect(store.getState().palette.find((p) => p.hex === '#D62828')?.locked).toBe(true)
+  })
+
+  it('locks the existing colour instead when the picked one is practically the same', () => {
+    const store = createProjectStore()
+    store.getState().setResult(resultWith([gold, dark]))
+    store.getState().addPickedColour({ ...dark, L: dark.L + 0.005 })
+    expect(store.getState().picked).toEqual([])
+    expect(store.getState().palette[1].locked).toBe(true)
+    expect(store.getState().count).toBeNull()
+  })
+
+  it('releases a picked colour when it is unlocked, and forgets picks for a new image', () => {
+    const store = createProjectStore()
+    store.getState().setSource(source())
+    store.getState().setResult(resultWith([gold, dark]))
+    store.getState().addPickedColour(red)
+    store.getState().setResult(resultWith([gold, red, dark]))
+    store.getState().toggleLock(2) // the red
+    expect(store.getState().picked).toEqual([])
+    store.getState().addPickedColour(red)
+    store.getState().setSource(source('other.png'))
+    expect(store.getState().picked).toEqual([])
+  })
 })

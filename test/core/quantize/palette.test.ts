@@ -3,7 +3,7 @@ import { srgbToOklab } from '../../../src/core/color/convert'
 import { deltaE } from '../../../src/core/color/distance'
 import { denoise } from '../../../src/core/image/denoise'
 import { fitToRug } from '../../../src/core/image/fitToRug'
-import { findPalette } from '../../../src/core/quantize/palette'
+import { bestNextColour, findPalette } from '../../../src/core/quantize/palette'
 import { findPeaks } from '../../../src/core/quantize/peaks'
 import { samplePixels } from '../../../src/core/quantize/sample'
 import type { ImageGrid, OKLab, RGB } from '../../../src/core/types'
@@ -14,6 +14,7 @@ import {
   smallEye,
   thinOutline,
   triforce,
+  twoToneShading,
   withJpegNoise,
 } from '../../fixtures/images'
 
@@ -67,6 +68,13 @@ describe('findPalette', () => {
       const pal = findPalette(samplesOf(img), { count: 4, locked: [], seed })
       expect(closest(pal, FIXTURE.red)).toBeLessThan(1)
     }
+  })
+
+  it('keeps both tones of two-tone shading at the suggested count', () => {
+    const pal = palette(twoToneShading(400, 20), 4)
+    expect(closest(pal, FIXTURE.mint)).toBeLessThan(2)
+    expect(closest(pal, FIXTURE.darkGreen)).toBeLessThan(2)
+    expect(closest(pal, FIXTURE.gold)).toBeLessThan(2)
   })
 
   it('finds all six colours of sixColours', () => {
@@ -169,5 +177,57 @@ describe('findPalette', () => {
   it('returns just the locked colours when there are no samples', () => {
     const red = srgbToOklab(FIXTURE.red)
     expect(findPalette([], { count: 4, locked: [red], seed: 1 })).toEqual([red])
+  })
+
+  it.each([
+    ['gradient', () => gradientCircle(300, 64), 7],
+    ['six colours', () => sixColours(150), 5],
+    ['small eye', () => smallEye(300, 0.005), 3],
+  ])('adds exactly one colour per step and never moves the others (%s)', (_, make, upTo) => {
+    const samples = samplesOf(make())
+    for (let n = 1; n < upTo; n++) {
+      const smaller = findPalette(samples, { count: n, locked: [], seed: 1 })
+      const bigger = findPalette(samples, { count: n + 1, locked: [], seed: 1 })
+      for (const c of smaller) expect(bigger).toContainEqual(c)
+      expect(bigger.length - smaller.length).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('has no randomness left: any seed gives the same palette', () => {
+    const samples = samplesOf(gradientCircle(300, 64))
+    const a = findPalette(samples, { count: 6, locked: [], seed: 1 })
+    const b = findPalette(samples, { count: 6, locked: [], seed: 99 })
+    expect(a).toEqual(b)
+  })
+})
+
+describe('bestNextColour', () => {
+  const at = (L: number, a = 0, b = 0) => ({ L, a, b })
+  const many = (c: { L: number; a: number; b: number }, n: number) =>
+    Array.from({ length: n }, () => c)
+
+  it('picks the colour that brings all samples closest to the palette (checked by brute force)', () => {
+    const groups = [
+      { colour: at(0.2), n: 100 },
+      { colour: at(0.8), n: 100 },
+      { colour: at(0.55, 0.05), n: 40 },
+      { colour: at(0.95, 0, 0.1), n: 8 },
+      { colour: at(0.35, -0.1), n: 25 },
+    ]
+    const samples = groups.flatMap((g) => many(g.colour, g.n))
+    const palette = [at(0.2), at(0.8)]
+    const errorWith = (pal: typeof palette) =>
+      samples.reduce((sum, s) => sum + Math.min(...pal.map((c) => deltaE(s, c) ** 2)), 0)
+    const best = groups
+      .map((g) => g.colour)
+      .filter((c) => !palette.some((p) => deltaE(p, c) < 5))
+      .reduce((a, b) => (errorWith([...palette, b]) < errorWith([...palette, a]) ? b : a))
+    const chosen = bestNextColour(samples, palette)!
+    expect(deltaE(chosen, best)).toBeLessThan(0.5)
+  })
+
+  it('suggests nothing when every sample is already close to a palette colour', () => {
+    const samples = [...many(at(0.2), 50), ...many(at(0.21), 50), ...many(at(0.8), 50)]
+    expect(bestNextColour(samples, [at(0.2), at(0.8)])).toBeNull()
   })
 })

@@ -17,6 +17,8 @@ export const FIXTURE = {
   navy: { r: 20, g: 40, b: 110 },
   green: { r: 40, g: 160, b: 70 },
   blue: { r: 40, g: 100, b: 220 },
+  mint: { r: 136, g: 182, b: 154 },
+  darkGreen: { r: 60, g: 122, b: 89 },
 } satisfies Record<string, RGB>
 
 /** Circles in the fixtures have this radius, as a share of the image size. */
@@ -155,6 +157,29 @@ export function smallEye(sizePx: number, eyeShare: number): ImageGrid {
     if (Math.hypot(x - eye.x, y - eye.y) < eyeRadius) return FIXTURE.navy
     if (Math.hypot(x - c, y - c) < faceRadius) return FIXTURE.yellow
     return FIXTURE.white
+  })
+}
+
+/**
+ * Two-tone shading, as in cel-shaded character art: a disk, light mint on the left and dark
+ * green on the right, with a soft transition `softPx` wide between them (an sRGB blend),
+ * plus a small gold detail, on white. The two tones are two colours a tufter wants, even
+ * though the transition links them.
+ */
+export function twoToneShading(sizePx: number, softPx: number): ImageGrid {
+  const c = centreOf(sizePx)
+  const r = CIRCLE_RADIUS_SHARE * sizePx
+  const light = FIXTURE.mint
+  const dark = FIXTURE.darkGreen
+  return makeImage(sizePx, (x, y) => {
+    if (Math.hypot(x - c, y - c) >= r) return FIXTURE.white
+    if (Math.hypot(x - (c - r / 2), y - (c - r / 3)) < r / 8) return FIXTURE.gold
+    const t = Math.min(1, Math.max(0, (x - c + softPx / 2) / softPx)) // 0 = light, 1 = dark
+    return {
+      r: Math.round(light.r + t * (dark.r - light.r)),
+      g: Math.round(light.g + t * (dark.g - light.g)),
+      b: Math.round(light.b + t * (dark.b - light.b)),
+    }
   })
 }
 

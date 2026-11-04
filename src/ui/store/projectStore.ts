@@ -36,6 +36,8 @@ export type ProjectState = {
   thicken: OKLab[]
   /** Colours merged into others, in the order chosen. */
   merges: MergeRecord[]
+  /** Colours picked from the image (eyedropper): kept locked until unlocked. */
+  picked: OKLab[]
 }
 
 export type ProjectActions = {
@@ -52,6 +54,7 @@ export type ProjectActions = {
   toggleThicken(colour: OKLab): void
   mergeColour(fromNumber: number, intoNumber: number): void
   undoMerge(index: number): void
+  addPickedColour(colour: OKLab): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -73,6 +76,7 @@ const initialState: ProjectState = {
   outlines: { enabled: false, widthMm: 10, colour: null, where: 'all' },
   thicken: [],
   merges: [],
+  picked: [],
 }
 
 /**
@@ -103,6 +107,7 @@ export function createProjectStore() {
           count: null,
           thicken: [],
           merges: [],
+          picked: [],
           outlines: { ...get().outlines, enabled: false, colour: null },
         })
         keepStepValid()
@@ -116,18 +121,39 @@ export function createProjectStore() {
         set({ count: count === null ? null : Math.min(16, Math.max(1, Math.round(count))) }),
       setMinDetail: (mm) => set({ minDetailMm: mm }),
       setResult(result) {
-        set({ result, palette: paletteFrom(result.palette, get().palette) })
+        const palette = paletteFrom(result.palette, get().palette).map((p) =>
+          isPicked(get().picked, p.lab) ? { ...p, locked: true } : p,
+        )
+        set({ result, palette })
         keepStepValid()
       },
       setStep(step) {
         if (availableSteps(get()).includes(step)) set({ step })
       },
-      toggleLock: (number) =>
+      toggleLock(number) {
+        const entry = get().palette.find((p) => p.number === number)
+        if (!entry) return
         set({
           palette: get().palette.map((p) =>
             p.number === number ? { ...p, locked: !p.locked } : p,
           ),
-        }),
+          // Unlocking a picked colour releases it.
+          picked: entry.locked
+            ? get().picked.filter((c) => !isPicked([c], entry.lab))
+            : get().picked,
+        })
+      },
+      addPickedColour(colour) {
+        const { palette, picked, count, result } = get()
+        const existing = palette.find((p) => deltaE(p.lab, colour) < SAME_COLOUR_DELTA_E)
+        if (existing) {
+          // Already in the palette: just make sure it stays.
+          if (!existing.locked) get().toggleLock(existing.number)
+          return
+        }
+        const found = count ?? result?.suggestedCount ?? palette.length
+        set({ picked: [...picked, colour], count: Math.min(16, found + 1) })
+      },
       renameColour: (number, name) =>
         set({ palette: get().palette.map((p) => (p.number === number ? { ...p, name } : p)) }),
       setOutlines: (change) => set({ outlines: { ...get().outlines, ...change } }),
@@ -188,4 +214,8 @@ function paletteFrom(colours: OKLab[], previous: PaletteEntry[]): PaletteEntry[]
       ...(match?.yarnId ? { yarnId: match.yarnId } : {}),
     }
   })
+}
+
+function isPicked(picked: OKLab[], colour: OKLab): boolean {
+  return picked.some((c) => deltaE(c, colour) < SAME_COLOUR_DELTA_E)
 }

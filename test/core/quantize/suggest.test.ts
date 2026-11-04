@@ -15,6 +15,7 @@ import {
   smallEye,
   thinOutline,
   triforce,
+  twoToneShading,
   withJpegNoise,
 } from '../../fixtures/images'
 
@@ -41,6 +42,11 @@ describe('suggestCount', () => {
 
   it('suggests 3 for a smooth thin outline, not counting its grey rims', () => {
     expect(suggest(fitToRug(thinOutline(800, 12), { widthMm: 200, heightMm: 200 }, 1))).toBe(3)
+  })
+
+  it('counts two-tone shading as two colours, even with a soft transition (Rayquaza)', () => {
+    // White, mint, dark green, gold.
+    expect(suggest(twoToneShading(400, 20))).toBe(4)
   })
 
   it('counts a gradient as one colour', () => {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { deltaE } from '../../core/color/distance'
+import { sampleColour } from '../../core/color/sample'
 import { labelAt } from '../../core/labelMap'
 import {
   type ImageGrid,
@@ -9,6 +10,7 @@ import {
   type RugSize,
 } from '../../core/types'
 import { drawPattern } from '../../render/patternCanvas'
+import { describeAddedColour } from '../colourWords'
 import { useProject } from '../store/useProject'
 import { parseCm } from '../validation'
 
@@ -21,10 +23,83 @@ export function ColoursStep() {
   const result = useProject((s) => s.result)
   const palette = useProject((s) => s.palette)
   const rug = useProject((s) => s.rug)
+  const count = useProject((s) => s.count)
+  const setCount = useProject((s) => s.setCount)
+  const addPickedColour = useProject((s) => s.addPickedColour)
   const [highlight, setHighlight] = useState<number | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const [picking, setPicking] = useState(false)
+  // A colour was asked for: remember the palette before, to find the new colour in the result.
+  const pending = useRef<{
+    before: PaletteEntry[]
+    resultBefore: typeof result
+    countBefore: number | null
+    picked: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    const p = pending.current
+    // Only a new result counts; renaming or locking meanwhile changes the palette too.
+    if (!p || result === p.resultBefore) return
+    pending.current = null
+    const added = palette.find((e) => !p.before.some((b) => deltaE(b.lab, e.lab) < 1))
+    if (!added) {
+      setNote('Nothing more worth adding: every part of the art already has a close colour.')
+      setCount(p.countBefore)
+      return
+    }
+    setNote(
+      `${p.picked ? 'Picked from the image. ' : 'Added '}${describeAddedColour(added, palette)}`,
+    )
+    setHighlight(added.number - 1)
+    const timer = setTimeout(() => setHighlight(null), 2500)
+    return () => clearTimeout(timer)
+  }, [palette, result, setCount])
 
   if (!source) return <p className="placeholder">Choose an image in Setup first.</p>
   if (!result) return <p className="placeholder">Making the pattern…</p>
+
+  const shown = count ?? result.suggestedCount
+
+  function addColour() {
+    pending.current = { before: palette, resultBefore: result, countBefore: count, picked: false }
+    setNote(null)
+    setCount(shown + 1)
+  }
+
+  /** The eyedropper: undo the fit-and-centre of fitToRug to find the clicked image pixel. */
+  function pick(at: { x: number; y: number }) {
+    const { grid } = source!
+    setPicking(false)
+    const fit = Math.min(rug.widthMm / grid.width, rug.heightMm / grid.height) // mm per image px
+    const x = (at.x - (rug.widthMm - grid.width * fit) / 2) / fit
+    const y = (at.y - (rug.heightMm - grid.height * fit) / 2) / fit
+    if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) {
+      setNote('That spot is outside the image.')
+      return
+    }
+    let colour
+    try {
+      colour = sampleColour(
+        grid,
+        { x, y },
+        Math.max(2, Math.round(Math.min(grid.width, grid.height) / 200)),
+      )
+    } catch {
+      setNote('That spot is transparent: pick a spot on the art.')
+      return
+    }
+    const existing = palette.find((p) => deltaE(p.lab, colour) < 3)
+    if (existing) {
+      setNote(
+        `That colour is already Colour ${existing.number} (${existing.name}); it is now locked.`,
+      )
+    } else {
+      pending.current = { before: palette, resultBefore: result, countBefore: count, picked: true }
+      setNote(null)
+    }
+    addPickedColour(colour)
+  }
 
   return (
     <div className="colours">
@@ -36,15 +111,35 @@ export function ColoursStep() {
             rug={rug}
             highlight={highlight}
             onHover={setHighlight}
+            picking={picking}
+            onPick={pick}
           />
-          <figcaption>Original</figcaption>
+          <figcaption>{picking ? 'Click a spot to add its colour' : 'Original'}</figcaption>
         </figure>
         <figure>
           <PatternView rug={rug} highlight={highlight} onHover={setHighlight} />
           <figcaption>Pattern</figcaption>
         </figure>
       </div>
-      <PaletteList palette={palette} highlight={highlight} onHover={setHighlight} />
+      <div className="palette-column">
+        <div className="palette-actions">
+          <button type="button" onClick={addColour} disabled={shown >= 16}>
+            Add a colour
+          </button>
+          <button type="button" onClick={() => setCount(shown - 1)} disabled={shown <= 1}>
+            Remove a colour
+          </button>
+          <button type="button" aria-pressed={picking} onClick={() => setPicking(!picking)}>
+            {picking ? 'Cancel picking' : 'Pick a colour from the image'}
+          </button>
+        </div>
+        {note && (
+          <p className="notice" role="status">
+            {note}
+          </p>
+        )}
+        <PaletteList palette={palette} highlight={highlight} onHover={setHighlight} />
+      </div>
       <Settings />
     </div>
   )
@@ -108,7 +203,15 @@ function OriginalView({
   rug,
   highlight,
   onHover,
-}: { grid: ImageGrid; map: LabelMap; rug: RugSize } & HoverProps) {
+  picking,
+  onPick,
+}: {
+  grid: ImageGrid
+  map: LabelMap
+  rug: RugSize
+  picking: boolean
+  onPick(at: { x: number; y: number }): void
+} & HoverProps) {
   const ref = useRef<HTMLCanvasElement>(null)
   const size = viewSize(rug)
   const image = useMemo(() => toCanvas(grid), [grid])
@@ -128,13 +231,14 @@ function OriginalView({
   return (
     <canvas
       ref={ref}
-      className="view"
+      className={picking ? 'view picking' : 'view'}
       width={size.width}
       height={size.height}
       role="img"
       aria-label="The original image"
       onMouseMove={(e) => onHover(labelOrNull(map, mmAt(e, rug)))}
       onMouseLeave={() => onHover(null)}
+      onClick={(e) => picking && onPick(mmAt(e, rug))}
     />
   )
 }

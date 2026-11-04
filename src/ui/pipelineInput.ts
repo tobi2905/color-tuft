@@ -1,4 +1,5 @@
 import { srgbToOklab } from '../core/color/convert'
+import { deltaE } from '../core/color/distance'
 import type { PipelineInput } from '../core/pipeline'
 import type { ProjectState } from './store/projectStore'
 
@@ -17,7 +18,7 @@ export function pipelineInputFrom(state: ProjectState): PipelineInput | null {
     image: state.source.grid,
     rug: state.rug,
     count: state.count,
-    locked: state.palette.filter((p) => p.locked).map((p) => p.lab),
+    locked: lockedColours(state),
     minDetailMm: state.minDetailMm,
     outlines: state.outlines.enabled
       ? {
@@ -35,4 +36,13 @@ export function pipelineInputFrom(state: ProjectState): PipelineInput | null {
 function darkest(state: ProjectState) {
   if (state.palette.length === 0) return null
   return state.palette.reduce((a, b) => (b.lab.L < a.lab.L ? b : a)).lab
+}
+
+/** Locked palette colours plus picked colours not in the palette yet, each once. */
+function lockedColours(state: ProjectState) {
+  const locked = state.palette.filter((p) => p.locked).map((p) => p.lab)
+  for (const c of state.picked) {
+    if (!locked.some((l) => deltaE(l, c) < 3)) locked.push(c)
+  }
+  return locked
 }

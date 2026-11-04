@@ -378,3 +378,37 @@ button.link {
   width: 1rem;
   height: 1rem;
 }
+
+.palette-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.palette-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.palette-actions button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #1d1d1f;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.palette-actions button[aria-pressed='true'] {
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.palette-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.view.picking {
+  cursor: copy;
+}
