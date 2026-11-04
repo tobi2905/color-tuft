@@ -233,6 +233,12 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Tests: `thinOutline` with 1 mm lines and 3 mm minimum gives a warning for the line's label; after `thickenLabel` the line is at least 3 mm wide everywhere; areas away from the line keep their labels.
   - Walkthrough: what a distance transform is and why it answers "how wide is this part?".
   - Commit: `feat(core): thin line detection and thickening`
+- [ ] **4.4 Optional separation outlines.**
+  - Files: `src/core/cleanup/outlines.ts`, `test/core/cleanup/outlines.test.ts`.
+  - Builds: `addOutlines(map: LabelMap, opts: { widthMm: number; label: number; where: 'all' | 'outer' | { pairs: [number, number][] } }): LabelMap`: every pixel within `widthMm / 2` of a chosen border gets `label` (the outline yarn; a new palette entry if it isn't in the palette yet), using `distanceTransform` from 4.3. `suggestOutlines(map: LabelMap, palette: OKLab[]): number | null`: the label of a dark colour that mostly forms thin lines (existing outlines), or null. Off by default: the pipeline only calls `addOutlines` when the user turns it on.
+  - Tests: with outlines off the map is unchanged; `sixColours` with 10 mm outlines on `'all'` has outline pixels on every border, at least 10 mm wide everywhere, and none further than 5 mm from a border; `'outer'` touches only borders next to `NO_LABEL`; a chosen pair outlines only that border; `thinOutline` suggests its black label, `triforce` suggests none; the input map is unchanged.
+  - Walkthrough: why outlines run before island cleanup (they can squeeze small areas).
+  - Commit: `feat(core): optional separation outlines`
 
 ## Phase 5: Smooth tracing and the full pipeline
 
@@ -258,7 +264,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Commit: `feat(core): vector pattern`
 - [ ] **5.4 Run the whole pipeline.**
   - Files: `src/core/pipeline.ts`, `test/core/pipeline.test.ts`.
-  - Builds: `runPipeline(input: { image: ImageGrid; rug: RugSize; count: number; locked: OKLab[]; minDetailMm: number; seed: number }): { palette: OKLab[]; suggestedCount: number; map: LabelMap; pattern: VectorPattern; thin: ReturnType<typeof findThinParts> }`, chaining fit, denoise, coarse sample, palette, fine assignment, cleanup and tracing.
+  - Builds: `runPipeline(input: { image: ImageGrid; rug: RugSize; count: number; locked: OKLab[]; minDetailMm: number; outlines: { widthMm: number; colour: OKLab; where: 'all' | 'outer' | { pairs: [number, number][] } } | null; seed: number }): { palette: OKLab[]; suggestedCount: number; map: LabelMap; pattern: VectorPattern; thin: ReturnType<typeof findThinParts> }`, chaining fit, denoise, sample, palette, fine assignment, outlines (only if not null), cleanup and tracing. Output also gains `outlineSuggestion: number | null` from `suggestOutlines`.
   - Tests: `triforce` on an 800 × 800 mm rug returns 2 colours, 3 gold regions, straight sides, in under 1 second in Node.
   - Commit: `feat(core): end-to-end pipeline`
 
@@ -284,7 +290,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Commit: `feat(ui): setup step`
 - [ ] **6.4 Colours step and pattern canvas.**
   - Files: `src/ui/steps/ColoursStep.tsx`, `src/render/patternCanvas.ts`, `src/core/labelPoint.ts`, `test/core/labelPoint.test.ts`.
-  - Builds: `poleOfInaccessibility(polygon: Pt[], precisionMm: number): Pt` (the point deepest inside a shape, for numbers); `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button.
+  - Builds: `poleOfInaccessibility(polygon: Pt[], precisionMm: number): Pt` (the point deepest inside a shape, for numbers); `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button; an "Outlines" section, off by default, with width in cm, yarn colour and where, and a hint when `outlineSuggestion` finds existing outlines.
   - Tests: a square's label point is its centre; an L-shape's label point lies inside it.
   - Check (Milestone A): the Triforce shows 3 regions numbered 1 and the background numbered 2, with straight sides.
   - Commit: `feat(ui): colours step`

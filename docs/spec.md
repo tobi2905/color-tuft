@@ -25,6 +25,7 @@ One project runs through six steps; any step can be revisited, and later steps u
 2. **Colours:** the reduced result beside the original, plus a numbered palette (number, name, colour code).
    - Change the colour count; swap a colour for a yarn; merge two colours; lock a colour.
    - Set the minimum detail size in cm.
+   - Optional separation outlines (off by default; see Image pipeline).
    - Touch up with a brush and a fill bucket.
 3. **Outline** (shaped rugs only): automatic cut line, border offset, smoothing.
 4. **Preview:** yarn-textured render of the finished rug, mirrored or not; export as an image.
@@ -46,15 +47,20 @@ The pipeline runs in a Web Worker so the page stays responsive. Each step is a s
    - Locked colours never move.
 5. **Stock mode:** map colours to yarns (see the yarn section).
 6. **No dithering:** gradients become solid bands, never speckle patterns.
-7. **Cleanup:** islands smaller than the minimum detail size merge into the neighbour they share the most border with.
+7. **Separation outlines (optional, off by default):** lines of one yarn, usually black, between areas, as in comic and character rugs. Many designs don't want them, so they are never added automatically.
+   - Settings: width in cm, yarn colour (default: the darkest palette colour), and where: all borders, the outer edge only, or chosen colour pairs.
+   - Lines are centred on the border and have the full width everywhere; they become a normal palette colour, so yarn amounts and the projector include them.
+   - They run before cleanup, so areas an outline squeezes below the minimum detail size are merged or flagged like any other.
+   - When the art already has dark outlines (a dark colour that mostly forms thin lines), the app suggests turning this on; thickening those existing lines (step 8) is the other option.
+8. **Cleanup:** islands smaller than the minimum detail size merge into the neighbour they share the most border with.
    - Lines thinner than tuftable are flagged with a warning and a "thicken to minimum" option, never deleted. Outlines often carry flat art.
-8. **Smooth tracing, never pixel steps:** the pixel grid only decides colours; it is never drawn as lines.
+9. **Smooth tracing, never pixel steps:** the pixel grid only decides colours; it is never drawn as lines.
    - Borders are traced along the cracks between pixels, then fitted at a tolerance larger than one pixel, so a diagonal comes out as a diagonal, not a staircase.
    - Curve fitting with corner detection (like Potrace) turns borders into straight lines and smooth curves while keeping real corners sharp: the Triforce stays three crisp triangles, a circle stays round.
    - Each border between two colours is traced and smoothed once as a shared edge, so neighbouring areas fit with no gaps or overlaps after smoothing.
    - The outline, preview and projector view all use these vectors.
 
-**Touch-ups** (brush, fill, merge, swap) edit the colour map directly; only steps 7 and 8 re-run for the affected area, so edits feel instant.
+**Touch-ups** (brush, fill, merge, swap) edit the colour map directly; only steps 7 to 9 re-run for the affected area, so edits feel instant.
 
 ## Outline and rug shape
 
@@ -148,7 +154,7 @@ A browser-only app: Vite, React and TypeScript, Zustand for state, Canvas for dr
 | --- | --- |
 | `core/color` | OKLab conversion, colour distance, very close / close / noticeable ratings |
 | `core/quantize` | Finding colours, locks, suggested colour count |
-| `core/cleanup` | Islands, minimum detail size, thin-line detection and thickening |
+| `core/cleanup` | Islands, minimum detail size, thin-line detection and thickening, optional separation outlines |
 | `core/trace` | Colour map to shared vector borders, curve fitting with corners |
 | `core/outline` | Background detection, border offset, cut-line smoothing |
 | `core/yarn` | Amounts, waste and waste learning, shopping list |
@@ -213,7 +219,7 @@ Everything below came up while brainstorming and is deliberately out of v1.
 
 ## Decision log and open questions
 
-All decisions were made in the brainstorming session on Nov 4, 2026.
+All decisions were made in the brainstorming session on Nov 4, 2026, unless marked otherwise.
 
 | Decision | Why |
 | --- | --- |
@@ -226,6 +232,7 @@ All decisions were made in the brainstorming session on Nov 4, 2026.
 | Projector is the transfer method | What most tufters use |
 | Shaped rugs by default, rectangles with a background yarn | Covers both common rug types |
 | Brush and fill touch-up; full editor later | Auto results always need a few fixes; a paint app is a project in itself |
+| Separation outlines as an option, off by default (added Nov 4, 2026) | Common in comic and character rugs, but unwanted in many designs; the app knows the true size, so widths are real cm |
 | Yarn input: picker with name and code, photo sampling, swatch screenshot import | Works with any shop, no scraping |
 | Stock mode suggests matches by default, plus "Find matching colours" | Fast default, manual help where matches are poor |
 | Yarn amounts from a calibration square, plus adjustable waste % | Generic formulas are too far off per gun and yarn |
