@@ -173,7 +173,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Builds: `capSize(w: number, h: number, maxSide = 4096): { width: number; height: number; downscaled: boolean }` (pure); `loadImageFile(file: File): Promise<{ grid: ImageGrid; downscaled: boolean }>` via `createImageBitmap` and `OffscreenCanvas`. Unsupported types reject with `Unsupported image type. Use PNG, JPEG or WebP.`
   - Tests: `capSize(8000, 6000)` gives 4096 × 3072 and `downscaled: true`; `capSize(800, 600)` unchanged. Check: loading a large phone photo in the browser shows the notice and doesn't freeze.
   - Commit: `feat: load and cap images`
-- [ ] **2.2 Fit the image to the rug.**
+- [X] **2.2 Fit the image to the rug.**
   - Files: `src/core/image/fitToRug.ts`, `test/core/image/fitToRug.test.ts`.
   - Builds: `fitToRug(img: ImageGrid, rug: RugSize, mmPerPx: number): ImageGrid`. The output is `rug / mmPerPx` pixels; the art fits inside, keeps its aspect ratio and is centred; the rest is transparent. Area averaging when shrinking, bilinear when enlarging, alpha included.
   - Tests: a 200 × 100 image into 800 × 600 mm at 1 mm/px gives an 800 × 600 grid, art 800 × 400 centred, top and bottom 100 rows fully transparent.
