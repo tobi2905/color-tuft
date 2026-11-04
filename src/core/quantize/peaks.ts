@@ -7,6 +7,8 @@ import type { OKLab } from '../types'
  */
 export type Peak = { lab: OKLab; share: number; distinct: boolean }
 
+/** A peak this large counts as a real colour of the art, however small its area. */
+export const MIN_PEAK_SHARE = 0.002
 /** A distinct peak is at least this far (deltaE) from every larger peak. */
 export const DISTINCT_DELTA_E = 10
 /** Only cubes holding at least this share of the samples join colour islands. */

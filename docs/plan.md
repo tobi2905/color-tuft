@@ -203,7 +203,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Commit: `feat(core): palette with locks and small-colour protection`
 - [ ] **3.3 Suggest a colour count. (you write)**
   - Files: `src/core/quantize/suggest.ts`, `test/core/quantize/suggest.test.ts`.
-  - Builds: `suggestCount(peaks: { lab: OKLab; share: number }[]): number`: peaks with share ≥ 0.2%, merged when within deltaE 5, clamped to 2..16.
+  - Builds: `suggestCount(peaks: Peak[]): number`: the `distinct` peaks (see 3.1) with share ≥ 0.2%, clamped to 2..16. Same colours `findPalette` picks first, so the suggested count returns exactly the art's colours; a gradient counts once.
   - Tests: `triforce` gives 2; `sixColours` gives 6.
   - Commit: `feat(core): suggested colour count`
 - [ ] **3.4 Assign the fine colour map.**

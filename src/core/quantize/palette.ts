@@ -1,10 +1,8 @@
 import { deltaE } from '../color/distance'
 import { seededRandom } from '../random'
 import type { OKLab } from '../types'
-import { DISTINCT_DELTA_E, findPeaks } from './peaks'
+import { DISTINCT_DELTA_E, MIN_PEAK_SHARE, findPeaks } from './peaks'
 
-/** A peak this large counts as a real colour of the art, however small its area. */
-export const MIN_PEAK_SHARE = 0.002
 /** Splitting stops when no sample is at least this far (deltaE) from every chosen colour. */
 export const MIN_SPLIT_DELTA_E = 5
 
