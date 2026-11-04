@@ -227,7 +227,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Builds: `mergeSmallIslands(map: LabelMap, minAreaMm2: number): LabelMap`. Each island below the threshold takes the label of the larger neighbour it shares the longest border with (only larger, so it always ends); repeat until nothing changes. First `bridgeDiagonals(map)` (`src/core/cleanup/diagonals.ts`) closes corner-only contacts in favour of the smaller patch, so a thin diagonal or curved line is one patch, not many specks; `connectedRegions` gained an optional `connectivity: 4 | 8` for it.
   - Tests: 1 px noise dots disappear; a region exactly at the threshold stays; on `withJpegNoise(sixColours)` no region below the threshold survives; a long thin line in `thinOutline` is kept (large area).
   - Commit: `feat(core): merge small islands`
-- [ ] **4.3 Flag and thicken thin lines.**
+- [X] **4.3 Flag and thicken thin lines.**
   - Files: `src/core/cleanup/distance.ts`, `src/core/cleanup/thin.ts`, tests in `test/core/cleanup/`.
   - Builds: `distanceTransform(mask: Uint8Array, w: number, h: number): Float32Array` (exact Euclidean, two-pass); `findThinParts(map: LabelMap, minWidthMm: number): { label: number; at: Pt; widthMm: number }[]`; `thickenLabel(map: LabelMap, label: number, minWidthMm: number): LabelMap`.
   - Tests: `thinOutline` with 1 mm lines and 3 mm minimum gives a warning for the line's label; after `thickenLabel` the line is at least 3 mm wide everywhere; areas away from the line keep their labels.
