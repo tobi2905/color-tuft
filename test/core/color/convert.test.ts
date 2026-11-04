@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hexToRgb, oklabToSrgb, rgbToHex, srgbToOklab } from '../../../src/core/color/convert'
-import { seededRandom } from '../../fixtures/random'
+import { seededRandom } from '../../../src/core/random'
 
 describe('hexToRgb', () => {
   it('reads #RRGGBB', () => {

@@ -179,7 +179,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Tests: a 200 × 100 image into 800 × 600 mm at 1 mm/px gives an 800 × 600 grid, art 800 × 400 centred, top and bottom 100 rows fully transparent.
   - Walkthrough: why mm, not pixels, is the unit from here on.
   - Commit: `feat(core): fit image to rug size`
-- [ ] **2.3 Edge-preserving denoise.**
+- [X] **2.3 Edge-preserving denoise.**
   - Files: `src/core/image/denoise.ts`, `test/core/image/denoise.test.ts`.
   - Builds: `denoise(img: ImageGrid, opts: { radiusPx: number; rangeDeltaE: number }): ImageGrid`, a bilateral filter weighted by distance in OKLab; alpha untouched.
   - Tests: `withJpegNoise(triforce)` after denoise has at least 99% of pixels within deltaE 3 of the true colour; pixels 2 px from an edge stay on their own side.
@@ -190,7 +190,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 **Done when:** the app finds the art's real colours, suggests a count, respects locks, and produces a fine colour map.
 
-- [ ] **3.1 Sample and find colour peaks.**
+- [X] **3.1 Sample and find colour peaks.**
   - Files: `src/core/quantize/sample.ts`, `src/core/quantize/peaks.ts`, tests beside them in `test/core/quantize/`.
   - Builds: `samplePixels(img: ImageGrid, maxSamples: number, seed: number): OKLab[]` (skips alpha < 128); `findPeaks(samples: OKLab[], binSize = 0.02): { lab: OKLab; share: number }[]` from a 3D histogram, local maxima sorted by share.
   - Tests: `triforce` gives 2 peaks; shares sum to 1 (±1e-9); a `withSoftAlpha` image adds no halo peak.

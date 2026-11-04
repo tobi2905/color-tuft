@@ -12,7 +12,7 @@ import {
   withJpegNoise,
   withSoftAlpha,
 } from './images'
-import { seededRandom } from './random'
+import { seededRandom } from '../../src/core/random'
 
 // --- small helpers for looking at images ---
 

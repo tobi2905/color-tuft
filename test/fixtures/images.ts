@@ -4,7 +4,7 @@
  */
 import { oklabToSrgb } from '../../src/core/color/convert'
 import type { ImageGrid, Pt, RGB } from '../../src/core/types'
-import { seededRandom } from './random'
+import { seededRandom } from '../../src/core/random'
 
 /** The colours the fixtures use, so tests can refer to them by name. */
 export const FIXTURE = {
