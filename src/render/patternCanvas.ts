@@ -115,6 +115,11 @@ export function edgesPath(pattern: VectorPattern): Path2D {
   return prepare(pattern).edges
 }
 
+/** Each region as one path (mm, holes included: fill with 'evenodd'). */
+export function regionPaths(pattern: VectorPattern): Path2D[] {
+  return prepare(pattern).paths
+}
+
 /** A region as one path: each ring traced along its edges, backwards where marked. */
 function regionPath(pattern: VectorPattern, region: Region): Path2D {
   const path = new Path2D()

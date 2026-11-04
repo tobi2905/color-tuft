@@ -353,10 +353,10 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: white lines on black with adjustable thickness (screen px); numbers at each region's label point, sized in cm on the cloth; regions too small for the number at the current size get the number outside with a short pointer line (biggest areas first, 8 directions at growing distances, first free spot); dashed cut line; grid every 10 cm; mirror. Grid, outlines and cut line go through the projector transform (mirrored with it); numbers and pointers are drawn in screen space, so digits are never mirrored. Each layer can be switched on and off, also from the fullscreen overlay.
   - Tests: `placeLabels` puts no two labels on top of each other, also in a crowd of 36 tiny areas; a 5 mm region gets an outside label with a pointer; an inside label moves out when a bigger area's label is already there; boxes fit the text.
   - Commit: `feat(render): projector layers`
-- [ ] **8.4 One colour at a time.**
-  - Files: `src/render/projector/focus.ts`, `src/ui/projector/ControlPanel.tsx`.
-  - Builds: the current label's regions drawn bright, everything else faint outlines; Left and Right arrows step through labels; the panel shows the yarn's number and name in large text.
-  - Check: stepping through the Triforce lights up exactly the regions with number 1, then number 2.
+- [X] **8.4 One colour at a time.**
+  - Files: `src/render/projector/focus.ts` (`coloursInPattern`, `stepFocus`, `focusRegions`, tested), `test/render/focus.test.ts`, `src/ui/projector/ControlPanel.tsx`; `drawProjectorPattern` gains `focus`, the store `projector.focus`.
+  - Builds: the current colour's regions drawn bright (soft white fill, full outlines), everything else faint outlines, only its numbers shown; Left and Right arrows (in Pattern mode, with one colour on) and Previous/Next step through the colours used in the pattern, wrapping round (a colour no longer there, e.g. merged, starts again at the first); the panel shows the yarn's swatch, number and name in large text and "n of N colours". Arrow keys in Calibrate mode still nudge; text fields and sliders keep their own arrow keys.
+  - Check: stepping through the Triforce lights up exactly the regions with number 1, then number 2 (also a test).
   - Commit: `feat: one-colour-at-a-time mode`
 - [ ] **8.5 Two windows and wake lock.**
   - Files: `src/ui/projector/sync.ts`, `src/ui/projector/ProjectorWindow.tsx`, `test/ui/sync.test.ts`.

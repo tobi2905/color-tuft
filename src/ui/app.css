@@ -534,3 +534,28 @@ button.link {
   background: #1d1d1f;
   color: #fff;
 }
+
+.control-panel {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e3e1db;
+}
+
+.current-yarn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.current-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.swatch.large {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.5rem;
+}

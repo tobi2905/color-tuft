@@ -274,6 +274,15 @@ describe('project store', () => {
     })
   })
 
+  it('shows all colours on the projector until one is chosen', () => {
+    const store = createProjectStore()
+    expect(store.getState().projector.focus).toBeNull()
+    store.getState().setFocus(3)
+    expect(store.getState().projector.focus).toBe(3)
+    store.getState().setFocus(null)
+    expect(store.getState().projector.focus).toBeNull()
+  })
+
   it('switches projector layers one at a time', () => {
     const store = createProjectStore()
     store.getState().setLayers({ grid: true, fontMm: 50 })

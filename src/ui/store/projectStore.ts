@@ -60,6 +60,8 @@ export type ProjectState = {
     mirror: boolean
     /** Which pattern layers the projector shows. */
     layers: LayerOptions
+    /** One colour at a time: the label shown lit up, or null for all colours. */
+    focus: number | null
   }
 }
 
@@ -89,6 +91,7 @@ export type ProjectActions = {
   nudge(dx: number, dy: number): void
   setMirror(mirror: boolean): void
   setLayers(change: Partial<LayerOptions>): void
+  setFocus(label: number | null): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -123,6 +126,7 @@ const initialState: ProjectState = {
     offsetPx: { x: 0, y: 0 },
     mirror: true,
     layers: { outlines: true, lineWidthPx: 2, numbers: true, fontMm: 30, cut: true, grid: false },
+    focus: null,
   },
 }
 
@@ -236,6 +240,7 @@ export function createProjectStore() {
         })
       },
       setMirror: (mirror) => set({ projector: { ...get().projector, mirror } }),
+      setFocus: (focus) => set({ projector: { ...get().projector, focus } }),
       setLayers: (change) =>
         set({
           projector: { ...get().projector, layers: { ...get().projector.layers, ...change } },

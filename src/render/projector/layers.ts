@@ -1,6 +1,6 @@
 import type { CutLoop } from '../../core/outline/cutLine'
 import type { PaletteEntry, VectorPattern } from '../../core/types'
-import { edgesPath, regionLabelPoints } from '../patternCanvas'
+import { edgesPath, regionLabelPoints, regionPaths } from '../patternCanvas'
 import { placeLabels } from './labels'
 import { type ProjectorOptions, projectorTransform } from './transform'
 
@@ -24,6 +24,8 @@ export const GRID_MM = 100
  * mm through the projector transform (so they are mirrored with it); numbers and their
  * pointer lines are drawn in screen space, so the digits are never mirrored. Numbers that
  * don't fit their area sit outside it with a pointer (placeLabels): no two overlap.
+ * One colour at a time (`focus`): that colour's regions light up (soft white fill, bright
+ * outline), all other outlines are dimmed, and only its numbers are shown.
  * `ctx` is set up in CSS pixels (device pixel ratio already applied).
  */
 export function drawProjectorPattern(
@@ -33,6 +35,7 @@ export function drawProjectorPattern(
   cut: CutLoop[] | null,
   projector: ProjectorOptions,
   layers: LayerOptions,
+  focus: number | null = null,
 ): void {
   const t = projectorTransform(projector)
   const origin = t.toScreen({ x: 0, y: 0 })
@@ -60,11 +63,22 @@ export function drawProjectorPattern(
     ctx.lineWidth = 1 / s
     ctx.stroke()
   }
+  const lit =
+    focus === null ? [] : pattern.regions.flatMap((r, i) => (r.label === focus ? [i] : []))
+  const paths = focus === null ? [] : regionPaths(pattern)
+  if (focus !== null) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
+    for (const i of lit) ctx.fill(paths[i], 'evenodd')
+  }
   if (layers.outlines) {
-    ctx.strokeStyle = '#fff'
     ctx.lineWidth = layers.lineWidthPx / s
     ctx.lineJoin = 'round'
+    ctx.strokeStyle = focus === null ? '#fff' : 'rgba(255, 255, 255, 0.2)'
     ctx.stroke(edgesPath(pattern))
+    if (focus !== null) {
+      ctx.strokeStyle = '#fff'
+      for (const i of lit) ctx.stroke(paths[i])
+    }
   }
   if (layers.cut && cut) {
     const path = new Path2D()
@@ -87,6 +101,7 @@ export function drawProjectorPattern(
   if (layers.numbers) {
     const points = regionLabelPoints(pattern)
     const inputs = pattern.regions.flatMap((region, i) => {
+      if (focus !== null && region.label !== focus) return []
       const entry = palette[region.label]
       return entry
         ? [{ id: i, text: String(entry.number), at: points[i].at, roomMm: points[i].roomMm }]

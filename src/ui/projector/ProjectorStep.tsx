@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { calibrationLayout, drawCalibration } from '../../render/projector/calibration'
 import { drawProjectorPattern } from '../../render/projector/layers'
 import { projectorTransform } from '../../render/projector/transform'
+import { coloursInPattern, stepFocus } from '../../render/projector/focus'
 import { useProject } from '../store/useProject'
+import { ControlPanel } from './ControlPanel'
 import { parseCm } from '../validation'
 
 /** The first guess shows the whole rug with room around it: this share of the screen. */
@@ -75,17 +77,31 @@ export function ProjectorStep() {
       mirror: projector.mirror,
     }
     if (mode === 'pattern' && pattern) {
-      drawProjectorPattern(ctx, pattern, palette, cut, options, projector.layers)
+      drawProjectorPattern(ctx, pattern, palette, cut, options, projector.layers, projector.focus)
     } else {
       const t = projectorTransform(options)
       drawCalibration(ctx, calibrationLayout(rug, t.toScreen, t.scale, viewport), viewport)
     }
   }, [viewport, rug, projector, mode, pattern, palette, cut])
 
-  // Arrow keys nudge the picture: 1 px, or 10 px with Shift. Not while typing in a field.
+  // Arrow keys: in Pattern mode with one colour showing, Left/Right step the colour; otherwise
+  // they nudge the picture (1 px, or 10 px with Shift). Not while typing in a field.
+  const focus = useProject((s) => s.projector.focus)
+  const setFocus = useProject((s) => s.setFocus)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return
+      // Text fields and sliders use the arrow keys themselves; checkboxes don't.
+      if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') return
+      if (
+        mode === 'pattern' &&
+        focus !== null &&
+        pattern &&
+        (e.key === 'ArrowLeft' || e.key === 'ArrowRight')
+      ) {
+        e.preventDefault()
+        setFocus(stepFocus(focus, coloursInPattern(pattern), e.key === 'ArrowRight' ? 1 : -1))
+        return
+      }
       const step = e.shiftKey ? 10 : 1
       const move: Record<string, [number, number]> = {
         ArrowLeft: [-step, 0],
@@ -99,7 +115,7 @@ export function ProjectorStep() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nudge])
+  }, [nudge, mode, focus, pattern, setFocus])
 
   return (
     <div className="projector">
@@ -123,10 +139,13 @@ export function ProjectorStep() {
                     fullscreenLabel="Exit fullscreen"
                   />
                 ) : (
-                  <LayerControls
-                    onFullscreen={() => document.exitFullscreen()}
-                    fullscreenLabel="Exit fullscreen"
-                  />
+                  <>
+                    <ControlPanel />
+                    <LayerControls
+                      onFullscreen={() => document.exitFullscreen()}
+                      fullscreenLabel="Exit fullscreen"
+                    />
+                  </>
                 )}
                 <button type="button" className="link" onClick={() => setOverlayOpen(false)}>
                   Hide
@@ -143,10 +162,13 @@ export function ProjectorStep() {
       <section className="card settings">
         <ModeSwitch mode={mode} onChange={setMode} />
         {mode === 'pattern' ? (
-          <LayerControls
-            onFullscreen={() => stage.current?.requestFullscreen()}
-            fullscreenLabel="Fullscreen"
-          />
+          <>
+            <ControlPanel />
+            <LayerControls
+              onFullscreen={() => stage.current?.requestFullscreen()}
+              fullscreenLabel="Fullscreen"
+            />
+          </>
         ) : (
           <>
             <ol className="steps-list">
