@@ -273,10 +273,10 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 **Done when:** you upload your Triforce image in the browser and see a clean, numbered pattern next to the original.
 
-- [ ] **6.1 Pipeline worker.**
-  - Files: `src/worker/pipeline.worker.ts`, `src/ui/hooks/usePipeline.ts`, `test/ui/usePipeline.test.ts`.
-  - Builds: the worker exposes `runPipeline` through Comlink, passing image buffers as transferables. `usePipeline()` returns `{ result, running, error, run(input) }`; a failed run keeps the last good `result` and sets `error`.
-  - Tests: with a fake worker that throws, `result` is unchanged and `error` is set.
+- [X] **6.1 Pipeline worker.**
+  - Files: `src/worker/pipeline.worker.ts`, `src/ui/pipelineRunner.ts`, `src/ui/hooks/usePipeline.ts`, `test/ui/pipelineRunner.test.ts`.
+  - Builds: the worker exposes `runPipeline` through Comlink, passing image buffers as transferables (the UI transfers a copy and keeps its original). `createPipelineRunner(api)` holds the logic in plain TypeScript (testable in Node): a failed run keeps the last good `result` and sets `error`; only the newest run counts. `usePipeline()` is a thin `useSyncExternalStore` wrapper returning `{ result, running, error, run(input) }`, one shared worker for the app; a crashed worker fails the pending run and is restarted.
+  - Tests: with a fake worker that throws, `result` is unchanged and `error` is set; a slower older run never overwrites a newer one; the next good run clears the error.
   - Walkthrough: what a Web Worker is, why transferables avoid copying, how Comlink hides `postMessage`.
   - Commit: `feat: pipeline in a web worker`
 - [ ] **6.2 App shell and state.**
