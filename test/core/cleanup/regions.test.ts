@@ -35,6 +35,14 @@ describe('connectedRegions', () => {
     expect(regions).toHaveLength(4)
   })
 
+  it('joins corner-touching pixels when asked for 8-connectivity', () => {
+    const { regions } = connectedRegions(mapFrom('01', '10'), 8)
+    expect(regions).toHaveLength(2)
+    expect(
+      connectedRegions(mapFrom('100', '010', '001'), 8).regions.filter((r) => r.label === 1),
+    ).toHaveLength(1)
+  })
+
   it('gives outside pixels (NO_LABEL) no region and id -1', () => {
     const { ids, regions } = connectedRegions(mapFrom('.0.', '.0.', '...'))
     expect(regions).toHaveLength(1)

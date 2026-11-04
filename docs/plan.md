@@ -222,9 +222,9 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Tests: `triforce` gives 3 gold regions and 1 background region (the fixture has small gaps between the triangles, so the middle hole joins the outside; see 1.3); `NO_LABEL` pixels form no region.
   - Walkthrough: 4- vs 8-connectivity and why recursion overflows on big rugs.
   - Commit: `feat(core): connected regions`
-- [ ] **4.2 Merge small islands.**
+- [X] **4.2 Merge small islands.**
   - Files: `src/core/cleanup/islands.ts`, `test/core/cleanup/islands.test.ts`.
-  - Builds: `mergeSmallIslands(map: LabelMap, minAreaMm2: number): LabelMap`. Each island below the threshold takes the label of the neighbour it shares the longest border with; repeat until nothing changes.
+  - Builds: `mergeSmallIslands(map: LabelMap, minAreaMm2: number): LabelMap`. Each island below the threshold takes the label of the larger neighbour it shares the longest border with (only larger, so it always ends); repeat until nothing changes. First `bridgeDiagonals(map)` (`src/core/cleanup/diagonals.ts`) closes corner-only contacts in favour of the smaller patch, so a thin diagonal or curved line is one patch, not many specks; `connectedRegions` gained an optional `connectivity: 4 | 8` for it.
   - Tests: 1 px noise dots disappear; a region exactly at the threshold stays; on `withJpegNoise(sixColours)` no region below the threshold survives; a long thin line in `thinOutline` is kept (large area).
   - Commit: `feat(core): merge small islands`
 - [ ] **4.3 Flag and thicken thin lines.**

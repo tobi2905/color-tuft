@@ -9,8 +9,10 @@ export type RegionInfo = {
 }
 
 /**
- * Patches of touching same-label pixels. Pixels touch only through a shared side
- * (4-connected), so shapes meeting at a corner stay separate.
+ * Patches of touching same-label pixels. By default pixels touch only through a shared side
+ * (4-connected), so shapes meeting at a corner stay separate. With connectivity 8, corner
+ * contact counts too: a thin diagonal or curved line, a staircase of pixels touching only
+ * at corners, is then one patch instead of many tiny ones.
  *
  * `ids` gives each pixel its region id (-1 for NO_LABEL); `regions[id]` describes it.
  * Ids follow the order regions are first met, scanning row by row.
@@ -18,7 +20,10 @@ export type RegionInfo = {
  * Flood fill with an explicit to-do stack instead of recursion: one background region
  * can have millions of pixels, far deeper than the call stack allows.
  */
-export function connectedRegions(map: LabelMap): { ids: Int32Array; regions: RegionInfo[] } {
+export function connectedRegions(
+  map: LabelMap,
+  connectivity: 4 | 8 = 4,
+): { ids: Int32Array; regions: RegionInfo[] } {
   const { width: w, height: h, labels } = map
   const n = w * h
   const ids = new Int32Array(n).fill(-1)
@@ -50,22 +55,22 @@ export function connectedRegions(map: LabelMap): { ids: Int32Array; regions: Reg
       if (y < minY) minY = y
       if (y > maxY) maxY = y
 
-      // The four side neighbours, if inside the map, same label and not yet visited.
-      if (x > 0 && ids[p - 1] === -1 && labels[p - 1] === label) {
-        ids[p - 1] = id
-        stack[top++] = p - 1
+      // Neighbours inside the map with the same label, not yet visited, join the region.
+      const visit = (q: number) => {
+        if (ids[q] === -1 && labels[q] === label) {
+          ids[q] = id
+          stack[top++] = q
+        }
       }
-      if (x < w - 1 && ids[p + 1] === -1 && labels[p + 1] === label) {
-        ids[p + 1] = id
-        stack[top++] = p + 1
-      }
-      if (y > 0 && ids[p - w] === -1 && labels[p - w] === label) {
-        ids[p - w] = id
-        stack[top++] = p - w
-      }
-      if (y < h - 1 && ids[p + w] === -1 && labels[p + w] === label) {
-        ids[p + w] = id
-        stack[top++] = p + w
+      if (x > 0) visit(p - 1)
+      if (x < w - 1) visit(p + 1)
+      if (y > 0) visit(p - w)
+      if (y < h - 1) visit(p + w)
+      if (connectivity === 8) {
+        if (x > 0 && y > 0) visit(p - w - 1)
+        if (x < w - 1 && y > 0) visit(p - w + 1)
+        if (x > 0 && y < h - 1) visit(p + w - 1)
+        if (x < w - 1 && y < h - 1) visit(p + w + 1)
       }
     }
     regions.push({ id, label, areaPx: area, bbox: [minX, minY, maxX, maxY] })
