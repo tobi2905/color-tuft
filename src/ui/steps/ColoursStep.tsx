@@ -71,9 +71,12 @@ export function ColoursStep() {
   function pick(at: { x: number; y: number }) {
     const { grid } = source!
     setPicking(false)
+    // `at` is on the whole map; the art area starts at artOriginMm (after a shaped rug's border).
+    const ax = at.x - result!.artOriginMm.x
+    const ay = at.y - result!.artOriginMm.y
     const fit = Math.min(rug.widthMm / grid.width, rug.heightMm / grid.height) // mm per image px
-    const x = (at.x - (rug.widthMm - grid.width * fit) / 2) / fit
-    const y = (at.y - (rug.heightMm - grid.height * fit) / 2) / fit
+    const x = (ax - (rug.widthMm - grid.width * fit) / 2) / fit
+    const y = (ay - (rug.heightMm - grid.height * fit) / 2) / fit
     if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) {
       setNote('That spot is outside the image.')
       return
@@ -108,7 +111,9 @@ export function ColoursStep() {
           <OriginalView
             grid={source.grid}
             map={result.map}
-            rug={rug}
+            canvas={result.pattern.rug}
+            art={rug}
+            origin={result.artOriginMm}
             highlight={highlight}
             onHover={setHighlight}
             picking={picking}
@@ -117,7 +122,7 @@ export function ColoursStep() {
           <figcaption>{picking ? 'Click a spot to add its colour' : 'Original'}</figcaption>
         </figure>
         <figure>
-          <PatternView rug={rug} highlight={highlight} onHover={setHighlight} />
+          <PatternView rug={result.pattern.rug} highlight={highlight} onHover={setHighlight} />
           <figcaption>Pattern</figcaption>
         </figure>
       </div>
@@ -196,11 +201,16 @@ function PatternView({ rug, highlight, onHover }: { rug: RugSize } & HoverProps)
   )
 }
 
-/** The original, placed in the rug the way the pipeline placed it, with the other colours veiled. */
+/**
+ * The original, placed the way the pipeline placed it: fitted and centred in the art area,
+ * which sits at `origin` inside the whole map (`canvas`), with the other colours veiled.
+ */
 function OriginalView({
   grid,
   map,
-  rug,
+  canvas,
+  art,
+  origin,
   highlight,
   onHover,
   picking,
@@ -208,25 +218,32 @@ function OriginalView({
 }: {
   grid: ImageGrid
   map: LabelMap
-  rug: RugSize
+  canvas: RugSize
+  art: RugSize
+  origin: { x: number; y: number }
   picking: boolean
   onPick(at: { x: number; y: number }): void
 } & HoverProps) {
   const ref = useRef<HTMLCanvasElement>(null)
-  const size = viewSize(rug)
+  const rug = canvas
+  const size = viewSize(canvas)
   const image = useMemo(() => toCanvas(grid), [grid])
 
   useEffect(() => {
     const ctx = ref.current?.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, size.width, size.height)
-    // Fit and centre like fitToRug.
-    const fit = Math.min(size.width / grid.width, size.height / grid.height)
+    // Fit and centre in the art area like fitToRug (canvas pixels: mm × size.scale).
+    const areaW = art.widthMm * size.scale
+    const areaH = art.heightMm * size.scale
+    const fit = Math.min(areaW / grid.width, areaH / grid.height)
     const w = grid.width * fit
     const h = grid.height * fit
-    ctx.drawImage(image, (size.width - w) / 2, (size.height - h) / 2, w, h)
+    const x = origin.x * size.scale + (areaW - w) / 2
+    const y = origin.y * size.scale + (areaH - h) / 2
+    ctx.drawImage(image, x, y, w, h)
     if (highlight !== null) ctx.drawImage(veil(map, highlight), 0, 0, size.width, size.height)
-  }, [image, grid, map, highlight, size.width, size.height])
+  }, [image, grid, map, highlight, size.width, size.height, size.scale, art, origin])
 
   return (
     <canvas

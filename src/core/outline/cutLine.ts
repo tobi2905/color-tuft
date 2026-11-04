@@ -23,6 +23,21 @@ export function cutLine(
   mmPerPx: number,
   opts: { offsetMm: number; smoothMm: number },
 ): CutLoop[] {
+  return cutRug(art, w, h, mmPerPx, opts).loops
+}
+
+/**
+ * cutLine's loops, plus the rug itself as a mask on the same w × h grid (1 = inside the cut):
+ * art plus the border band. Parts of the rug beyond the grid are not in the mask, so give the
+ * grid room for the border.
+ */
+export function cutRug(
+  art: Uint8Array,
+  w: number,
+  h: number,
+  mmPerPx: number,
+  opts: { offsetMm: number; smoothMm: number },
+): { loops: CutLoop[]; mask: Uint8Array } {
   const offsetPx = Math.max(0, opts.offsetMm / mmPerPx)
   const smoothPx = Math.max(0, opts.smoothMm / mmPerPx)
   const pad = Math.ceil(offsetPx + smoothPx) + 2
@@ -39,7 +54,7 @@ export function cutLine(
       }
     }
   }
-  if (!any) return []
+  if (!any) return { loops: [], mask: new Uint8Array(w * h) }
 
   // 1. Grow by the offset.
   if (offsetPx > 0) rug = within(rug, W, H, offsetPx)
@@ -59,7 +74,11 @@ export function cutLine(
   const pattern = buildPattern(map, { widthMm: W * mmPerPx, heightMm: H * mmPerPx })
   const shift = pad * mmPerPx
   const move = (p: Pt): Pt => ({ x: p.x - shift, y: p.y - shift })
-  return pattern.regions.flatMap((region) =>
+  const mask = new Uint8Array(w * h)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) mask[y * w + x] = rug[(y + pad) * W + x + pad]
+  }
+  const loops = pattern.regions.flatMap((region) =>
     region.rings.map((ring) => {
       const { start, segs } = ringToPath(pattern, ring)
       return {
@@ -72,6 +91,7 @@ export function cutLine(
       }
     }),
   )
+  return { loops, mask }
 }
 
 /**

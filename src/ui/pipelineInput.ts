@@ -8,7 +8,8 @@ import type { ProjectState } from './store/projectStore'
  * the same rug size. Colour settings are not part of it, so changing them skips the image work.
  */
 export function imageKeyFrom(state: ProjectState): string {
-  return `${state.sourceId}|${state.rug.widthMm}x${state.rug.heightMm}`
+  // Shape and background clicks decide which pixels are background: part of the image stage.
+  return `${state.sourceId}|${state.rug.widthMm}x${state.rug.heightMm}|${state.shape}|${JSON.stringify(state.backgroundEdits)}`
 }
 
 /** Seed for the pipeline's random choices: fixed, so the same project gives the same pattern. */
@@ -37,6 +38,12 @@ export function pipelineInputFrom(state: ProjectState): PipelineInput | null {
       : null,
     thicken: state.thicken,
     merges: state.merges.map(({ from, into }) => ({ from, into })),
+    shape: state.shape,
+    offsetMm: state.offsetMm,
+    smoothMm: state.smoothMm,
+    backgroundEdits: state.backgroundEdits,
+    borderColour: state.borderColour,
+    backgroundColour: state.backgroundColour,
     seed: PIPELINE_SEED,
   }
 }

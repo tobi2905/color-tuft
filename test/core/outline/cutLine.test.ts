@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { signedArea } from '../../../src/core/geometry'
-import { type CutLoop, cutLine } from '../../../src/core/outline/cutLine'
+import { type CutLoop, cutLine, cutRug } from '../../../src/core/outline/cutLine'
 import type { Pt } from '../../../src/core/types'
 
 /** A loop as a dense polygon (curves sampled). */
@@ -137,5 +137,16 @@ describe('cutLine', () => {
 
   it('returns no loops for empty art', () => {
     expect(cutLine(new Uint8Array(100), 10, 10, 1, { offsetMm: 5, smoothMm: 2 })).toEqual([])
+  })
+})
+
+describe('cutRug', () => {
+  it('gives the same loops as cutLine plus the rug as a mask on the same grid', () => {
+    const art = artMask(140, 140, [20, 20, 120, 120])
+    const { loops, mask } = cutRug(art, 140, 140, 1, { offsetMm: 10, smoothMm: 0 })
+    expect(loops).toEqual(cutLine(art, 140, 140, 1, { offsetMm: 10, smoothMm: 0 }))
+    expect(mask[70 * 140 + 70]).toBe(1) // the art
+    expect(mask[70 * 140 + 15]).toBe(1) // 5 mm outside the art: the border band
+    expect(mask[70 * 140 + 5]).toBe(0) // 15 mm outside: beyond the cut
   })
 })

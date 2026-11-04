@@ -29,6 +29,12 @@ const base = (overrides: Partial<PipelineInput> = {}): PipelineInput => ({
   outlines: null,
   thicken: [],
   merges: [],
+  shape: 'rectangle',
+  offsetMm: 0,
+  smoothMm: 0,
+  backgroundEdits: [],
+  borderColour: null,
+  backgroundColour: null,
   seed: 1,
   ...overrides,
 })
@@ -80,7 +86,9 @@ describe('runPipeline', () => {
   })
 
   it('keeps a transparent PNG background outside the rug, with no halo colour', () => {
-    const result = runPipeline(base({ image: withSoftAlpha(triforce(400), 3), count: 4 }))
+    const result = runPipeline(
+      base({ image: withSoftAlpha(triforce(400), 3), count: 4, shape: 'shaped' }),
+    )
     expect(result.palette).toHaveLength(1)
     expect(closest(result.palette, goldLab)).toBeLessThan(2)
     expect(result.map.labels.filter((l) => l === NO_LABEL).length).toBeGreaterThan(0)
@@ -241,5 +249,104 @@ describe('createCachedPipeline', () => {
     const fresh = runPipeline({ ...input, count: 3 })
     expect(again.palette).toEqual(fresh.palette)
     expect(again.map.labels).toEqual(fresh.map.labels)
+  })
+})
+
+describe('runPipeline: shaped and rectangular rugs', () => {
+  const shaped = (overrides: Partial<PipelineInput> = {}) =>
+    base({
+      image: withSoftAlpha(circle(400), 2),
+      rug: { widthMm: 400, heightMm: 400 },
+      shape: 'shaped',
+      offsetMm: 20,
+      smoothMm: 5,
+      ...overrides,
+    })
+
+  it('shaped: grows the rug beyond the art by the border, and reports the cut line', () => {
+    const r = runPipeline(shaped())
+    expect(r.cut).not.toBeNull()
+    expect(r.cut!.length).toBe(1)
+    // The map is padded by the border: the art area sits inside it.
+    expect(r.artOriginMm.x).toBeGreaterThanOrEqual(20)
+    expect(r.map.width * r.map.mmPerPx).toBeGreaterThanOrEqual(400 + 40)
+    expect(r.pattern.rug.widthMm).toBe(r.map.width * r.map.mmPerPx)
+  })
+
+  it('shaped: fills the band between art and cut line with the border colour', () => {
+    const r = runPipeline(shaped())
+    expect(r.roles.border).not.toBeNull()
+    const { width: w } = r.map
+    // On the middle row, 10 mm outside the art's left edge: border.
+    const y = Math.round(r.artOriginMm.y + 200)
+    const x = Math.round(r.artOriginMm.x + 200 - 160 - 10)
+    expect(r.map.labels[y * w + x]).toBe(r.roles.border)
+    // 30 mm outside: beyond the cut, outside the rug.
+    expect(r.map.labels[y * w + x - 20]).toBe(NO_LABEL)
+  })
+
+  it('shaped: the border takes the colour the art edge mostly has, reusing it', () => {
+    const r = runPipeline(shaped())
+    const red = srgbToOklab(FIXTURE.red)
+    expect(deltaE(r.palette[r.roles.border!], red)).toBeLessThan(3)
+    expect(r.palette.filter((p) => deltaE(p, red) < 3)).toHaveLength(1) // reused, not added twice
+    expect(r.rolesAdded.border).toBe(false)
+  })
+
+  it('shaped: a chosen border yarn gets its own palette entry', () => {
+    const black = srgbToOklab(FIXTURE.black)
+    const r = runPipeline(shaped({ borderColour: black }))
+    expect(r.palette[r.roles.border!]).toEqual(black)
+    expect(r.rolesAdded.border).toBe(true)
+  })
+
+  it('shaped: removes a plain backdrop found along the edge (no transparency)', () => {
+    const r = runPipeline(shaped({ image: circle(400) })) // red disk on white
+    expect(r.background).toBe('edge-colour')
+    expect(r.palette.some((p) => p.L > 0.95)).toBe(false) // no white left in the rug
+  })
+
+  it('shaped: a background edit turns a background area back into art', () => {
+    // The Triforce on dark: the middle hole is background. Clicking it makes it art again.
+    const input = base({
+      image: triforce(400),
+      rug: { widthMm: 400, heightMm: 400 },
+      shape: 'shaped',
+      offsetMm: 10,
+    })
+    const holeAt = { x: 200, y: 260 }
+    const before = runPipeline(input)
+    const after = runPipeline({ ...input, backgroundEdits: [{ at: holeAt, background: false }] })
+    const label = (r: typeof before) => {
+      const x = Math.round(r.artOriginMm.x + holeAt.x)
+      const y = Math.round(r.artOriginMm.y + holeAt.y)
+      return r.map.labels[y * r.map.width + x]
+    }
+    expect(label(before)).toBe(NO_LABEL) // a big hole of background is cut out of the rug
+    expect(deltaE(after.palette[label(after)], srgbToOklab(FIXTURE.dark))).toBeLessThan(3)
+  })
+
+  it('shaped: a background edit turns an area of art into background', () => {
+    const input = shaped({ image: smallEye(400, 0.01), offsetMm: 5 }) // yellow face on white
+    const eyeAt = { x: 400 / 2 - 0.15 * 400, y: 400 / 2 - 0.1 * 400 }
+    const r = runPipeline({ ...input, backgroundEdits: [{ at: eyeAt, background: true }] })
+    expect(r.palette.some((p) => deltaE(p, srgbToOklab(FIXTURE.navy)) < 3)).toBe(false)
+  })
+
+  it('rectangle: fills empty space with the background yarn, nothing outside the rug', () => {
+    const r = runPipeline(
+      base({ image: withSoftAlpha(circle(300), 2), rug: { widthMm: 400, heightMm: 300 } }),
+    )
+    expect(r.cut).toBeNull()
+    expect(r.roles.background).not.toBeNull()
+    expect(r.palette[r.roles.background!].L).toBeGreaterThan(0.99) // white by default
+    expect(r.map.labels.includes(NO_LABEL)).toBe(false)
+    expect([r.map.width, r.map.height]).toEqual([400, 300])
+  })
+
+  it('rectangle: keeps a white backdrop of a JPEG as a colour of the art (no detection)', () => {
+    const r = runPipeline(base({ image: circle(300), rug: { widthMm: 300, heightMm: 300 } }))
+    expect(r.background).toBe('none')
+    expect(r.palette.some((p) => p.L > 0.95)).toBe(true)
   })
 })

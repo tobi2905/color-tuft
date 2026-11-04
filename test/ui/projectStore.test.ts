@@ -218,4 +218,43 @@ describe('project store', () => {
     store.getState().setSource(source('other.png'))
     expect(store.getState().picked).toEqual([])
   })
+
+  it('has rug-shape defaults: 2 cm border, 1 cm corner smoothing, automatic yarns', () => {
+    const s = createProjectStore().getState()
+    expect([s.offsetMm, s.smoothMm, s.borderColour, s.backgroundColour]).toEqual([
+      20,
+      10,
+      null,
+      null,
+    ])
+    expect(s.backgroundEdits).toEqual([])
+  })
+
+  it('stores background clicks and forgets them for a new image', () => {
+    const store = createProjectStore()
+    store.getState().addBackgroundEdit({ at: { x: 10, y: 20 }, background: true })
+    store.getState().addBackgroundEdit({ at: { x: 30, y: 40 }, background: false })
+    store.getState().undoBackgroundEdit(0)
+    expect(store.getState().backgroundEdits).toEqual([{ at: { x: 30, y: 40 }, background: false }])
+    store.getState().setSource(source())
+    expect(store.getState().backgroundEdits).toEqual([])
+  })
+
+  it('names colours added for the border or the background, not art colours reused for them', () => {
+    const store = createProjectStore()
+    store.getState().setResult({
+      ...resultWith([gold, red, dark]),
+      roles: { border: 2, background: null },
+      rolesAdded: { border: true, background: false },
+    } as PipelineResult)
+    expect(store.getState().palette[2].name).toBe('Border')
+
+    const fresh = createProjectStore()
+    fresh.getState().setResult({
+      ...resultWith([gold, red, dark]),
+      roles: { border: 2, background: null },
+      rolesAdded: { border: false, background: false }, // the dark of the art, reused
+    } as PipelineResult)
+    expect(fresh.getState().palette[2].name).toBe('Colour 3')
+  })
 })

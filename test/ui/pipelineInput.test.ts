@@ -103,4 +103,29 @@ describe('pipelineInputFrom', () => {
     store.getState().setSource({ grid, name: 'a.png', downscaled: false }) // the same file again
     expect(imageKeyFrom(store.getState())).not.toBe(resized)
   })
+
+  it('passes the rug shape settings', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setShape('shaped')
+    store.getState().setRugEdge({ offsetMm: 30, smoothMm: 5 })
+    store.getState().addBackgroundEdit({ at: { x: 1, y: 2 }, background: true })
+    const input = pipelineInputFrom(store.getState())!
+    expect([input.shape, input.offsetMm, input.smoothMm]).toEqual(['shaped', 30, 5])
+    expect(input.backgroundEdits).toEqual([{ at: { x: 1, y: 2 }, background: true }])
+    expect([input.borderColour, input.backgroundColour]).toEqual([null, null])
+  })
+
+  it('includes shape and background clicks in the image key, but not the border width', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    const k1 = imageKeyFrom(store.getState())
+    store.getState().setRugEdge({ offsetMm: 50 })
+    expect(imageKeyFrom(store.getState())).toBe(k1)
+    store.getState().setShape('rectangle')
+    const k2 = imageKeyFrom(store.getState())
+    expect(k2).not.toBe(k1)
+    store.getState().addBackgroundEdit({ at: { x: 1, y: 2 }, background: true })
+    expect(imageKeyFrom(store.getState())).not.toBe(k2)
+  })
 })

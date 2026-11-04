@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla'
 import { oklabToSrgb, rgbToHex } from '../../core/color/convert'
 import { deltaE } from '../../core/color/distance'
 import type { PipelineResult } from '../../core/pipeline'
+import type { BackgroundEdit } from '../../core/outline/backgroundEdits'
 import type { ImageGrid, OKLab, PaletteEntry, RugSize } from '../../core/types'
 
 export const STEPS = ['setup', 'colours', 'outline', 'preview', 'yarn', 'projector'] as const
@@ -40,6 +41,14 @@ export type ProjectState = {
   merges: MergeRecord[]
   /** Colours picked from the image (eyedropper): kept locked until unlocked. */
   picked: OKLab[]
+  /** Shaped rugs: border beyond the art and rounding of inner corners (mm). */
+  offsetMm: number
+  smoothMm: number
+  /** Shaped rugs: clicks turning areas into background or back into art. */
+  backgroundEdits: BackgroundEdit[]
+  /** Border yarn (shaped) and background yarn (rectangle); null = automatic. */
+  borderColour: OKLab | null
+  backgroundColour: OKLab | null
 }
 
 export type ProjectActions = {
@@ -57,6 +66,11 @@ export type ProjectActions = {
   mergeColour(fromNumber: number, intoNumber: number): void
   undoMerge(index: number): void
   addPickedColour(colour: OKLab): void
+  setRugEdge(change: { offsetMm?: number; smoothMm?: number }): void
+  addBackgroundEdit(edit: BackgroundEdit): void
+  undoBackgroundEdit(index: number): void
+  setBorderColour(colour: OKLab | null): void
+  setBackgroundColour(colour: OKLab | null): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -80,6 +94,11 @@ const initialState: ProjectState = {
   thicken: [],
   merges: [],
   picked: [],
+  offsetMm: 20,
+  smoothMm: 10,
+  backgroundEdits: [],
+  borderColour: null,
+  backgroundColour: null,
 }
 
 /**
@@ -112,6 +131,7 @@ export function createProjectStore() {
           thicken: [],
           merges: [],
           picked: [],
+          backgroundEdits: [],
           outlines: { ...get().outlines, enabled: false, colour: null },
         })
         keepStepValid()
@@ -125,7 +145,7 @@ export function createProjectStore() {
         set({ count: count === null ? null : Math.min(16, Math.max(1, Math.round(count))) }),
       setMinDetail: (mm) => set({ minDetailMm: mm }),
       setResult(result) {
-        const palette = paletteFrom(result.palette, get().palette).map((p) =>
+        const palette = paletteFrom(result.palette, get().palette, result).map((p) =>
           isPicked(get().picked, p.lab) ? { ...p, locked: true } : p,
         )
         set({ result, palette })
@@ -161,6 +181,12 @@ export function createProjectStore() {
       renameColour: (number, name) =>
         set({ palette: get().palette.map((p) => (p.number === number ? { ...p, name } : p)) }),
       setOutlines: (change) => set({ outlines: { ...get().outlines, ...change } }),
+      setRugEdge: (change) => set(change),
+      addBackgroundEdit: (edit) => set({ backgroundEdits: [...get().backgroundEdits, edit] }),
+      undoBackgroundEdit: (index) =>
+        set({ backgroundEdits: get().backgroundEdits.filter((_, i) => i !== index) }),
+      setBorderColour: (borderColour) => set({ borderColour }),
+      setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
       mergeColour(fromNumber, intoNumber) {
         const palette = get().palette
         const from = palette.find((p) => p.number === fromNumber)
@@ -196,7 +222,19 @@ export function availableSteps(state: Pick<ProjectState, 'source' | 'result' | '
  * Numbered palette entries for the pipeline's colours (lightest first). A colour close to one
  * already in the palette keeps its name and lock, so re-running doesn't lose the user's edits.
  */
-function paletteFrom(colours: OKLab[], previous: PaletteEntry[]): PaletteEntry[] {
+function paletteFrom(
+  colours: OKLab[],
+  previous: PaletteEntry[],
+  result?: Pick<PipelineResult, 'roles' | 'rolesAdded'>,
+): PaletteEntry[] {
+  // Only colours added for the border or background are named after it; an art colour
+  // reused as the border keeps its own name.
+  const roleName = (i: number) =>
+    result?.roles?.border === i && result.rolesAdded?.border
+      ? 'Border'
+      : result?.roles?.background === i && result.rolesAdded?.background
+        ? 'Background'
+        : null
   const claimed = new Set<PaletteEntry>()
   return colours.map((lab, i) => {
     let match: PaletteEntry | undefined
@@ -211,7 +249,7 @@ function paletteFrom(colours: OKLab[], previous: PaletteEntry[]): PaletteEntry[]
     if (match) claimed.add(match)
     return {
       number: i + 1,
-      name: match?.name ?? `Colour ${i + 1}`,
+      name: match?.name ?? roleName(i) ?? `Colour ${i + 1}`,
       lab,
       hex: rgbToHex(oklabToSrgb(lab)),
       locked: match?.locked ?? false,

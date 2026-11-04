@@ -20,7 +20,15 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
   const source = useProject((s) => s.source)
   // Settings changed by typing or dragging: these wait PIPELINE_DELAY_MS.
   const typed = useProject((s) =>
-    JSON.stringify([s.rug.widthMm, s.rug.heightMm, s.minDetailMm, s.count, s.outlines.widthMm]),
+    JSON.stringify([
+      s.rug.widthMm,
+      s.rug.heightMm,
+      s.minDetailMm,
+      s.count,
+      s.outlines.widthMm,
+      s.offsetMm,
+      s.smoothMm,
+    ]),
   )
   // Settings changed by a click (as text, so an equal value counts as "no change").
   const clicked = useProject((s) =>
@@ -32,6 +40,10 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
       s.outlines.enabled,
       s.outlines.where,
       s.outlines.colour,
+      s.shape,
+      s.backgroundEdits,
+      s.borderColour,
+      s.backgroundColour,
     ]),
   )
   const setResult = useProject((s) => s.setResult)

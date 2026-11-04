@@ -11,7 +11,19 @@ import { findPeaks } from './quantize/peaks'
 import { samplePixels } from './quantize/sample'
 import { suggestCount } from './quantize/suggest'
 import { buildPattern } from './trace/pattern'
-import type { ImageGrid, LabelMap, OKLab, RugSize, VectorPattern } from './types'
+import { srgbToOklab } from './color/convert'
+import { type BackgroundMethod, detectBackground } from './outline/background'
+import { type BackgroundEdit, applyBackgroundEdits } from './outline/backgroundEdits'
+import { type CutLoop, cutRug } from './outline/cutLine'
+import {
+  type ImageGrid,
+  type LabelMap,
+  NO_LABEL,
+  type OKLab,
+  type Pt,
+  type RugSize,
+  type VectorPattern,
+} from './types'
 
 /** Edge-preserving denoise settings (see denoise). */
 export const DENOISE = { radiusPx: 2, rangeDeltaE: 10 }
@@ -22,6 +34,7 @@ const SAME_COLOUR_DELTA_E = 3
 
 export type PipelineInput = {
   image: ImageGrid
+  /** The artwork's size. A shaped rug's border grows beyond it (see `cut`). */
   rug: RugSize
   /** How many colours to find (locked colours included); null = the suggested count. */
   count: number | null
@@ -36,15 +49,27 @@ export type PipelineInput = {
   thicken: OKLab[]
   /** Colours the user chose to merge into another ("Merge into…"). */
   merges: ColourMerge[]
+  /** Shaped: cut along the art, background removed. Rectangle: empty space gets a yarn. */
+  shape: 'shaped' | 'rectangle'
+  /** Shaped rugs: the border beyond the art (mm) and the rounding of tight inner corners. */
+  offsetMm: number
+  smoothMm: number
+  /** Shaped rugs: clicks that turn an area into background or back into art. */
+  backgroundEdits: BackgroundEdit[]
+  /** The border yarn of a shaped rug; null = the colour the art's outer edge mostly has. */
+  borderColour: OKLab | null
+  /** The yarn for the empty space of a rectangular rug; null = white. */
+  backgroundColour: OKLab | null
   seed: number
 }
 
 export type PipelineResult = {
-  /** Colours, lightest first; the index is the label in `map`. An outline colour may be last. */
+  /** Colours, lightest first; the index is the label in `map`. Extra colours (outline, border,
+   *  background) may follow. */
   palette: OKLab[]
   /** "This art has N colours". */
   suggestedCount: number
-  /** The cleaned colour map, 1 mm per pixel, the size of the rug. */
+  /** The cleaned colour map, 1 mm per pixel: the art area, plus the border for a shaped rug. */
   map: LabelMap
   pattern: VectorPattern
   /** Lines thinner than minDetailMm: warnings, never deleted. */
@@ -53,31 +78,60 @@ export type PipelineResult = {
   outlineSuggestion: number | null
   /** How many found colours were merged into others: found = palette.length + mergedAway. */
   mergedAway: number
+  /** The cut line of a shaped rug (mm, in the map's frame); null for a rectangle. */
+  cut: CutLoop[] | null
+  /** Which palette labels are the border yarn and the background yarn, if any. */
+  roles: { border: number | null; background: number | null }
+  /** Whether that colour was added for the role (true) or an art colour reused for it. */
+  rolesAdded: { border: boolean; background: boolean }
+  /** How the background was found ('none' for rectangles: they keep everything). */
+  background: BackgroundMethod
+  /** Where the art area's top-left corner sits in the map (mm): the border's width. */
+  artOriginMm: Pt
 }
 
-/** The image stages' results: they depend only on the image, the rug size and the seed. */
+/** The image stages' results: they depend only on the image, the rug size, the shape, the
+ *  background edits and the seed. */
 export type PreparedImage = {
-  /** The image at rug size (1 mm per pixel), denoised. */
+  /** The image at rug size (1 mm per pixel), denoised; background transparent for shaped rugs. */
   clean: ImageGrid
   samples: OKLab[]
   suggestedCount: number
   /** How big one pixel of the original image is on the rug (mm). */
   sourcePxMm: number
+  background: BackgroundMethod
 }
+
+const WHITE = srgbToOklab({ r: 255, g: 255, b: 255 })
 
 /**
  * The whole image pipeline, from an image to a vector pattern:
- * fit to the rug → denoise → sample → peaks → suggested count (prepareImage), then
- * palette → colour map → merges → outlines (only if turned on) → merge small islands →
- * thicken chosen colours → thin-line warnings → vector pattern (finishPipeline).
+ * (shaped: remove the background) → fit to the rug → denoise → sample → peaks → suggested
+ * count (prepareImage), then palette → colour map → merges → (rectangle: background yarn) →
+ * outlines (only if turned on) → merge small islands → thicken chosen colours → (shaped:
+ * cut line and border) → thin-line warnings → vector pattern (finishPipeline).
  */
 export function runPipeline(input: PipelineInput): PipelineResult {
   return finishPipeline(prepareImage(input), input)
 }
 
-/** The stages that depend only on the image, the rug size and the seed. */
-export function prepareImage(input: Pick<PipelineInput, 'image' | 'rug' | 'seed'>): PreparedImage {
-  const clean = denoise(fitToRug(input.image, input.rug, FINE_MM_PER_PX), DENOISE)
+/** The stages that depend only on the image, the rug size, the shape and background edits. */
+export function prepareImage(
+  input: Pick<PipelineInput, 'image' | 'rug' | 'seed' | 'shape' | 'backgroundEdits'>,
+): PreparedImage {
+  let image = input.image
+  let background: BackgroundMethod = 'none'
+  if (input.shape === 'shaped') {
+    // Detected on the original image: fitting adds transparent padding that would look like
+    // transparency. The background becomes transparent, so it is outside the rug from here on.
+    const found = detectBackground(image)
+    background = found.method
+    const mask = applyBackgroundEdits(image, found.mask, input.backgroundEdits, input.rug)
+    const data = new Uint8ClampedArray(image.data)
+    for (let p = 0; p < mask.length; p++) if (mask[p]) data[p * 4 + 3] = 0
+    image = { ...image, data }
+  }
+  const clean = denoise(fitToRug(image, input.rug, FINE_MM_PER_PX), DENOISE)
   const samples = samplePixels(clean, SAMPLE_COUNT, input.seed)
   return {
     clean,
@@ -88,10 +142,11 @@ export function prepareImage(input: Pick<PipelineInput, 'image' | 'rug' | 'seed'
       input.rug.widthMm / input.image.width,
       input.rug.heightMm / input.image.height,
     ),
+    background,
   }
 }
 
-/** The stages that depend on the colour settings: everything from the palette on. */
+/** The stages that depend on the colour and outline settings: everything from the palette on. */
 export function finishPipeline(prepared: PreparedImage, input: PipelineInput): PipelineResult {
   const { clean, samples, suggestedCount, sourcePxMm } = prepared
   const found = findPalette(samples, {
@@ -102,18 +157,31 @@ export function finishPipeline(prepared: PreparedImage, input: PipelineInput): P
 
   const merged = applyMerges(assignLabels(clean, found, FINE_MM_PER_PX), found, input.merges)
   const mergedAway = found.length - merged.palette.length
-  const palette = [...merged.palette] // a copy: an outline colour may be added below
+  const palette = [...merged.palette] // a copy: extra colours may be added below
   let map = merged.map
   const outlineSuggestion = suggestOutlines(map, palette)
+  /** The label of a colour: an existing one if practically the same, else a new entry. */
+  const added = new Set<number>()
+  const labelFor = (colour: OKLab) => {
+    const existing = palette.findIndex((p) => deltaE(p, colour) < SAME_COLOUR_DELTA_E)
+    if (existing !== -1) return existing
+    palette.push(colour)
+    added.add(palette.length - 1)
+    return palette.length - 1
+  }
+
+  // Rectangle: empty space (transparency, padding) becomes the background yarn.
+  let backgroundLabel: number | null = null
+  if (input.shape === 'rectangle' && map.labels.includes(NO_LABEL)) {
+    backgroundLabel = labelFor(input.backgroundColour ?? WHITE)
+    const labels = Uint8Array.from(map.labels)
+    for (let p = 0; p < labels.length; p++) if (labels[p] === NO_LABEL) labels[p] = backgroundLabel
+    map = { ...map, labels }
+  }
 
   if (input.outlines) {
     const { colour, widthMm, where } = input.outlines
-    let label = palette.findIndex((p) => deltaE(p, colour) < SAME_COLOUR_DELTA_E)
-    if (label === -1) {
-      palette.push(colour)
-      label = palette.length - 1
-    }
-    map = addOutlines(map, { widthMm, label, where })
+    map = addOutlines(map, { widthMm, label: labelFor(colour), where })
   }
 
   map = mergeSmallIslands(map, input.minDetailMm * input.minDetailMm)
@@ -121,10 +189,92 @@ export function finishPipeline(prepared: PreparedImage, input: PipelineInput): P
     const label = palette.findIndex((p) => deltaE(p, colour) < SAME_COLOUR_DELTA_E)
     if (label !== -1) map = thickenLabel(map, label, input.minDetailMm)
   }
-  const thin = findThinParts(map, input.minDetailMm)
-  const pattern = buildPattern(map, input.rug, { sourcePxMm })
 
-  return { palette, suggestedCount, map, pattern, thin, outlineSuggestion, mergedAway }
+  // Shaped: room for the border, the cut line, and the band between art and cut filled.
+  let cut: CutLoop[] | null = null
+  let borderLabel: number | null = null
+  let artOriginMm: Pt = { x: 0, y: 0 }
+  if (input.shape === 'shaped') {
+    const padPx = Math.ceil((input.offsetMm + input.smoothMm) / map.mmPerPx) + 2
+    map = padMap(map, padPx)
+    artOriginMm = { x: padPx * map.mmPerPx, y: padPx * map.mmPerPx }
+    const art = new Uint8Array(map.labels.length)
+    for (let p = 0; p < art.length; p++) art[p] = map.labels[p] === NO_LABEL ? 0 : 1
+    const rug = cutRug(art, map.width, map.height, map.mmPerPx, {
+      offsetMm: input.offsetMm,
+      smoothMm: input.smoothMm,
+    })
+    cut = rug.loops
+    const band: number[] = []
+    for (let p = 0; p < art.length; p++) if (rug.mask[p] && !art[p]) band.push(p)
+    if (band.length > 0) {
+      const edge = mostCommonEdgeLabel(map)
+      const colour = input.borderColour ?? (edge === null ? null : palette[edge])
+      if (colour) {
+        borderLabel = labelFor(colour)
+        const labels = Uint8Array.from(map.labels)
+        for (const p of band) labels[p] = borderLabel
+        map = { ...map, labels }
+      }
+    }
+  }
+
+  const thin = findThinParts(map, input.minDetailMm)
+  const rugMm = { widthMm: map.width * map.mmPerPx, heightMm: map.height * map.mmPerPx }
+  const pattern = buildPattern(map, rugMm, { sourcePxMm })
+
+  return {
+    palette,
+    suggestedCount,
+    map,
+    pattern,
+    thin,
+    outlineSuggestion,
+    mergedAway,
+    cut,
+    roles: { border: borderLabel, background: backgroundLabel },
+    rolesAdded: {
+      border: borderLabel !== null && added.has(borderLabel),
+      background: backgroundLabel !== null && added.has(backgroundLabel),
+    },
+    background: prepared.background,
+    artOriginMm,
+  }
+}
+
+/** The map with `padPx` pixels of outside (NO_LABEL) added on every side. */
+function padMap(map: LabelMap, padPx: number): LabelMap {
+  const width = map.width + 2 * padPx
+  const height = map.height + 2 * padPx
+  const labels = new Uint8Array(width * height).fill(NO_LABEL)
+  for (let y = 0; y < map.height; y++) {
+    labels.set(map.labels.subarray(y * map.width, (y + 1) * map.width), (y + padPx) * width + padPx)
+  }
+  return { ...map, width, height, labels }
+}
+
+/** The colour most common along the art's outer edge (art pixels next to the outside). */
+function mostCommonEdgeLabel(map: LabelMap): number | null {
+  const { width: w, height: h, labels } = map
+  const counts = new Map<number, number>()
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = y * w + x
+      const l = labels[p]
+      if (l === NO_LABEL) continue
+      if (
+        labels[p - 1] === NO_LABEL ||
+        labels[p + 1] === NO_LABEL ||
+        labels[p - w] === NO_LABEL ||
+        labels[p + w] === NO_LABEL
+      ) {
+        counts.set(l, (counts.get(l) ?? 0) + 1)
+      }
+    }
+  }
+  let best: number | null = null
+  for (const [l, c] of counts) if (best === null || c > counts.get(best)!) best = l
+  return best
 }
 
 /**
