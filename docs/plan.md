@@ -38,7 +38,7 @@ This is a learning project: you review and understand every line before it is co
 
 **Architecture:** a pure TypeScript image pipeline (`src/core`) runs in a Web Worker; React UI (`src/ui`) and canvas renderers (`src/render`) sit on top; data lives in IndexedDB and `.tuft` files (`src/storage`). The core is built and tested first, so the UI only displays things that already work.
 
-**Stack:** Vite, React, TypeScript (strict), Zustand, Comlink, Vitest, Playwright, ESLint, Prettier, fflate, idb, vite-plugin-pwa, GitHub Actions, GitHub Pages.
+**Stack:** Vite, React, TypeScript (strict), Zustand, Comlink, Vitest, Playwright, oxlint, Prettier, fflate, idb, vite-plugin-pwa, GitHub Actions, GitHub Pages.
 
 **Spec:** [`docs/spec.md`](spec.md). For agentic workers: implement with superpowers:executing-plans, one task at a time, following the loop above.
 
@@ -131,11 +131,11 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Check: `npm run dev` opens the starter page.
   - Walkthrough: Vite's project layout, what each `tsconfig` strict option catches.
   - Commit: `chore: scaffold Vite React TS project`
-- [ ] **0.2 Tooling.**
-  - Builds: Vitest (Node environment for `test/core/**`), ESLint, Prettier; scripts `test`, `lint`, `typecheck`, `build`. ESLint rule for `src/core/**`: `no-restricted-globals` (`window`, `document`, `navigator`) and `no-restricted-imports` (`react`, anything from `src/ui`, `src/render`).
+- [X] **0.2 Tooling.**
+  - Builds: Vitest (Node environment for `test/core/**`), oxlint (instead of ESLint: faster, same rules), Prettier (not run on `docs/`); scripts `test`, `lint`, `typecheck`, `format`, `build`. oxlint rule for `src/core/**` and `test/core/**`: `no-restricted-globals` (`window`, `document`, `navigator`, `self`) and `no-restricted-imports` (`react`, anything from `src/ui`, `src/render`).
   - Test: `test/core/smoke.test.ts` asserts `1 + 1 === 2`. Check: a throwaway `document.title` line in `src/core` fails `npm run lint`.
   - Walkthrough: why the core stays browser-free (runs in the worker and in Node tests).
-  - Commit: `chore: add Vitest, ESLint, Prettier`
+  - Commit: `chore: add Vitest, oxlint, Prettier`
 - [ ] **0.3 CI/CD pipeline. (you write, with review)**
   - Builds: `.github/workflows/ci.yml`. On push and pull request: `npm ci`, lint, typecheck, test, build. On `main` only: upload `dist/` with `actions/upload-pages-artifact` and deploy with `actions/deploy-pages`. Vite `base: '/color-tuft/'`.
   - Check: the live URL shows the page; a deliberately failing test turns the run red and nothing deploys.

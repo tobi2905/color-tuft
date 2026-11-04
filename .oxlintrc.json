@@ -4,5 +4,44 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/core/**", "test/core/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "window",
+            "message": "src/core must run in workers and Node: no browser globals."
+          },
+          {
+            "name": "document",
+            "message": "src/core must run in workers and Node: no browser globals."
+          },
+          {
+            "name": "navigator",
+            "message": "src/core must run in workers and Node: no browser globals."
+          },
+          { "name": "self", "message": "src/core must not depend on the worker global." }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              { "name": "react", "message": "src/core has no React." },
+              { "name": "react-dom", "message": "src/core has no React." }
+            ],
+            "patterns": [
+              { "group": ["react/*", "react-dom/*"], "message": "src/core has no React." },
+              {
+                "group": ["**/ui", "**/ui/**", "**/render", "**/render/**"],
+                "message": "src/core is the bottom layer: it may not import from ui/ or render/."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
