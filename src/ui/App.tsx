@@ -1,5 +1,7 @@
 import { Stepper } from './Stepper'
+import { usePipelineSync } from './hooks/usePipelineSync'
 import { STEP_LABELS } from './stepLabels'
+import { SetupStep } from './steps/SetupStep'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
 
@@ -21,16 +23,29 @@ export default function App() {
   const step = useProject((s) => s.step)
   const setStep = useProject((s) => s.setStep)
   const available = availableSteps({ source, result, shape })
+  const { running, error } = usePipelineSync()
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Color Tuft</h1>
         <Stepper current={step} available={available} onSelect={setStep} />
+        <p className="status" role="status">
+          {running ? 'Working…' : ''}
+        </p>
       </header>
+      {error && (
+        <p className="error banner" role="alert">
+          Something went wrong while making the pattern: {error} The last good result is kept.
+        </p>
+      )}
       <main className="app-main">
         <h2>{STEP_LABELS[step]}</h2>
-        <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
+        {step === 'setup' ? (
+          <SetupStep />
+        ) : (
+          <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
+        )}
       </main>
     </div>
   )

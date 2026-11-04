@@ -81,3 +81,142 @@ body {
 .placeholder {
   color: #6b6964;
 }
+
+.status {
+  margin: 0 0 0 auto;
+  color: #6b6964;
+  min-width: 6em;
+}
+
+.setup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e3e1db;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  padding: 1rem;
+  border: 2px dashed #c9c6be;
+  border-radius: 0.5rem;
+  text-align: center;
+  color: #6b6964;
+  cursor: pointer;
+}
+
+.dropzone.dragging {
+  border-color: #1d1d1f;
+  background: #efede7;
+}
+
+.image-canvas {
+  max-width: 100%;
+  max-height: 20rem;
+  image-rendering: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.field-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.field input {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #c9c6be;
+  border-radius: 0.4rem;
+}
+
+.field input[aria-invalid='true'] {
+  border-color: #b3261e;
+}
+
+.choice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+button {
+  font: inherit;
+}
+
+.card button,
+.actions button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid #1d1d1f;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.actions button {
+  background: #1d1d1f;
+  color: #fff;
+}
+
+.card button:disabled,
+.actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.actions {
+  grid-column: 1 / -1;
+}
+
+.hint {
+  color: #6b6964;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0;
+}
+
+.notice {
+  background: #fff6db;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.9rem;
+}
+
+.banner {
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  background: #fdecea;
+}

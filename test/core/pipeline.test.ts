@@ -88,6 +88,12 @@ describe('runPipeline', () => {
       expect(r.areaPx * map.mmPerPx ** 2).toBeGreaterThanOrEqual(100)
   })
 
+  it('uses the suggested count when count is null', () => {
+    const result = runPipeline(base({ image: smallEye(400, 0.005), count: null }))
+    expect(result.suggestedCount).toBe(3)
+    expect(result.palette).toHaveLength(3)
+  })
+
   it('returns a locked colour exactly', () => {
     const red = srgbToOklab(FIXTURE.red)
     expect(runPipeline(base({ locked: [red], count: 3 })).palette).toContainEqual(red)

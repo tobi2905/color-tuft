@@ -22,8 +22,8 @@ const SAME_COLOUR_DELTA_E = 3
 export type PipelineInput = {
   image: ImageGrid
   rug: RugSize
-  /** How many colours to find (locked colours included). */
-  count: number
+  /** How many colours to find (locked colours included); null = the suggested count. */
+  count: number | null
   /** Colours that must appear exactly, e.g. owned yarns. */
   locked: OKLab[]
   /** Smallest tuftable detail: areas under minDetail² are merged, thinner lines flagged. */
@@ -59,7 +59,7 @@ export function runPipeline(input: PipelineInput): PipelineResult {
   const samples = samplePixels(clean, SAMPLE_COUNT, input.seed)
   const suggestedCount = suggestCount(findPeaks(samples))
   const palette = findPalette(samples, {
-    count: input.count,
+    count: input.count ?? suggestedCount,
     locked: input.locked,
     seed: input.seed,
   })

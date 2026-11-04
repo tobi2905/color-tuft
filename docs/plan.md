@@ -63,14 +63,14 @@ This is a learning project: you review and understand every line before it is co
 | 3 Colour reduction | Palette, suggested count, colour map | 4 |
 | 4 Cleanup | Islands removed, thin lines flagged and thickened | 3 |
 | 5 Smooth tracing | Clean vector pattern; full pipeline in tests | 5–6 |
-| 6 First app slice | **Milestone A:** see your art as a numbered pattern in the browser | 4 |
+| 6 First app slice | **Milestone A:** see your art as a numbered pattern in the browser | 5 |
 | 7 Outline | Cut line, border offset, rectangle mode | 4 |
 | 8 Projector | **Milestone B:** project and tuft the Triforce | 5 |
 | 9 Yarn | Stock, matching, amounts, waste learning | 6 |
 | 10 Touch-ups | Brush, fill, merge, undo | 4 |
 | 11 Storage | Autosave, `.tuft` files, linked folder | 4 |
 | 12 Preview | Yarn mockup for clients | 4 |
-| 13 Release | **Milestone C:** v0.1 public, offline, tested | 3 |
+| 13 Release | **Milestone C:** v0.1 public, offline, designed, tested | 4 |
 
 ## Shared types
 
@@ -285,16 +285,21 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: `setCount` stores the value; changing the source resets the palette; names and locks survive a new result; step availability; the stepper rendered to HTML (React's server renderer, no browser) shows six numbered steps with the right ones disabled.
   - Commit: `feat(ui): app shell and project store`
 - [ ] **6.3 Setup step.**
-  - Files: `src/ui/steps/SetupStep.tsx`.
-  - Builds: drag-and-drop or file picker, rug width and height in cm, shaped or rectangle, colour count (default: the suggested count once known); downscale notice from 2.1.
+  - Files: `src/ui/steps/SetupStep.tsx`, `src/ui/ImageCanvas.tsx`, `src/ui/validation.ts`, `src/ui/pipelineInput.ts`, `src/ui/hooks/usePipelineSync.ts`, tests `test/ui/validation.test.ts`, `test/ui/pipelineInput.test.ts`.
+  - Builds: drag-and-drop or file picker, rug width and height in cm (decimal comma accepted, "match image proportions"), shaped or rectangle, colour count (empty = the suggested count: `runPipeline` takes `count: null`); downscale notice from 2.1. `usePipelineSync` re-runs the pipeline in the worker 300 ms after the image or a setting changes and stores the result; the header shows "Working…" and errors (the last good result is kept).
   - Check: invalid sizes (0, negative, over 500 cm) show an inline message.
   - Commit: `feat(ui): setup step`
 - [ ] **6.4 Colours step and pattern canvas.**
   - Files: `src/ui/steps/ColoursStep.tsx`, `src/render/patternCanvas.ts`, `src/core/labelPoint.ts`, `test/core/labelPoint.test.ts`.
-  - Builds: `poleOfInaccessibility(polygon: Pt[], precisionMm: number): Pt` (the point deepest inside a shape, for numbers); `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button; an "Outlines" section, off by default, with width in cm, yarn colour and where, and a hint when `outlineSuggestion` finds existing outlines.
-  - Tests: a square's label point is its centre; an L-shape's label point lies inside it.
+  - Builds: `poleOfInaccessibility(polygon: Pt[], precisionMm: number): Pt` (the point deepest inside a shape, for numbers); `drawPattern(ctx, pattern, palette, opts: { numbers: boolean; outlines: boolean })`; side-by-side original and pattern; palette list showing number, name (default "Colour 1"), hex code and swatch, plus a lock toggle; count slider with the suggested count marked; minimum detail input; thin-line warnings with a Thicken button; hovering a palette colour highlights its areas in the original and the pattern, hovering the image or pattern highlights that spot's colour in the palette; an "Outlines" section, off by default, with width in cm, yarn colour and where, and a hint when `outlineSuggestion` finds existing outlines.
+  - Tests: a square's label point is its centre; an L-shape's label point lies inside it; `labelAt(map, pt)` gives the colour under a point (for hovering).
   - Check (Milestone A): the Triforce shows 3 regions numbered 1 and the background numbered 2, with straight sides.
   - Commit: `feat(ui): colours step`
+- [ ] **6.5 Add the next best colour.**
+  - Files: `src/core/quantize/palette.ts` (change), `test/core/quantize/palette.test.ts` (extend), `src/ui/steps/ColoursStep.tsx` (extend).
+  - Builds: the splitting stage of `findPalette` stops picking at random: each extra colour is the candidate that reduces the total squared deltaE between samples and their nearest palette colour the most (candidates: the samples' cluster centres, not single noisy pixels). So `count + 1` returns the `count` palette plus one colour, the others unchanged up to k-means refinement. UI: "Add a colour" and "Remove a colour" buttons beside the count; the added colour is briefly highlighted with a note ("Added Colour 6: a darker shade of the yellow").
+  - Tests: a gradient asked for n + 1 colours contains the n colours within deltaE 2; the added colour is the one with the biggest error reduction (checked against brute force on a small set); a 2-colour Triforce asked for one more adds nothing; same input, same result (no randomness left).
+  - Commit: `feat: add the next best colour`
 
 ## Phase 7: Outline and rug shape
 
@@ -478,7 +483,12 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: go through the spec's error list: unsupported format message, large-image notice, worker crash keeps the last result, storage-full warning, `.tuft` version errors. Add any missing test.
   - Check: each case shows the right plain-language message in the browser.
   - Commit: `fix: error handling pass`
-- [ ] **13.4 Release.**
+- [ ] **13.4 Design pass.**
+  - Files: `src/ui/**` styles and layout.
+  - Builds: one consistent look across all six steps: type scale, spacing, colours of the interface itself (never confused with yarn colours), focus and hover states, empty and loading states, layout on a laptop and on a phone (pattern and shopping list), keyboard use. Function stays unchanged; the e2e test still passes.
+  - Check: every step looked at on a laptop and a phone; nothing overlaps, every control is reachable by keyboard.
+  - Commit: `style: design pass`
+- [ ] **13.5 Release.**
   - Files: `README.md`, `CHANGELOG.md`.
   - Builds: README with what it does, screenshots, how to use it with a projector, how to calibrate yarn, how to contribute; check that the name "Color Tuft" isn't taken; tag `v0.1.0` and publish a GitHub release.
   - Check: a friend opens the link, makes a pattern from their own image and projects it without help from you.

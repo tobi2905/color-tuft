@@ -24,6 +24,8 @@ One project runs through six steps; any step can be revisited, and later steps u
 1. **Setup:** upload an image, enter the real rug size in cm, choose shaped (default) or rectangle, and choose "N colours" or "my yarns only".
 2. **Colours:** the reduced result beside the original, plus a numbered palette (number, name, colour code).
    - Change the colour count; swap a colour for a yarn; merge two colours; lock a colour.
+   - **Add one colour:** the app adds the colour that improves the match most, keeps the others in place, and shows which one it added.
+   - **See where a colour sits:** hovering a palette colour highlights its areas in the image and the pattern; hovering the image shows which colour that spot belongs to.
    - Set the minimum detail size in cm.
    - Optional separation outlines (off by default; see Image pipeline).
    - Touch up with a brush and a fill bucket.
@@ -44,6 +46,7 @@ The pipeline runs in a Web Worker so the page stays responsive. Each step is a s
 4. **Find the colours:** detect the dominant colour peaks of the flat art, then refine with k-means.
    - Small but clearly distinct colours (eyes, highlights) are kept instead of being absorbed by large areas.
    - The app suggests a colour count ("this art has 6 colours") as a starting point.
+   - Each extra colour beyond that is the one that reduces the difference between art and pattern the most, so raising the count by one adds one sensible colour and never reshuffles the rest.
    - Locked colours never move.
 5. **Stock mode:** map colours to yarns (see the yarn section).
 6. **No dithering:** gradients become solid bands, never speckle patterns.
@@ -232,6 +235,8 @@ All decisions were made in the brainstorming session on Nov 4, 2026, unless mark
 | Projector is the transfer method | What most tufters use |
 | Shaped rugs by default, rectangles with a background yarn | Covers both common rug types |
 | Brush and fill touch-up; full editor later | Auto results always need a few fixes; a paint app is a project in itself |
+| Add one colour picks the colour that improves the match most; hovering shows where each colour sits (added Nov 4, 2026) | Raising the count should add a sensible colour, not reshuffle everything; seeing where a colour sits makes the palette understandable |
+| A design pass before the release (added Nov 4, 2026) | Function first; one consistent look once all six steps exist |
 | Separation outlines as an option, off by default (added Nov 4, 2026) | Common in comic and character rugs, but unwanted in many designs; the app knows the true size, so widths are real cm |
 | Yarn input: picker with name and code, photo sampling, swatch screenshot import | Works with any shop, no scraping |
 | Stock mode suggests matches by default, plus "Find matching colours" | Fast default, manual help where matches are poor |
