@@ -146,7 +146,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 **Done when:** colours convert to and from OKLab, distances come with word ratings, and generated test images exist for every later test.
 
-- [ ] **1.1 Types and colour conversion.**
+- [X] **1.1 Types and colour conversion.**
   - Files: `src/core/types.ts` (shared types above), `src/core/color/convert.ts`, `test/core/color/convert.test.ts`.
   - Builds: `hexToRgb(hex: string): RGB`, `rgbToHex(c: RGB): string` **(you write these two)**, `srgbToOklab(c: RGB): OKLab`, `oklabToSrgb(c: OKLab): RGB` (clamped to 0–255).
   - Tests: `'#FFD700'` ↔ `{r:255,g:215,b:0}`; white gives L ≈ 1, a and b ≈ 0 (±1e-3); black gives L = 0; 1,000 seeded random colours round-trip within 1 per channel.
