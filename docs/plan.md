@@ -201,7 +201,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Tests: `triforce` with count 7 returns exactly 2 colours, also with blended edges (shrunk or enlarged); a smooth thin outline gives its 3 colours, not its grey rims; `smallEye` with 0.5% eye and count 3 keeps the eye, also next to a gradient; a locked colour comes back identical; `gradientCircle` with count 4 gives 4 colours ordered by lightness; same seed, same result.
   - Walkthrough: k-means step by step, and why plain k-means swallows small details.
   - Commit: `feat(core): palette with locks and small-colour protection`
-- [ ] **3.3 Suggest a colour count. (you write)**
+- [X] **3.3 Suggest a colour count. (you write)**
   - Files: `src/core/quantize/suggest.ts`, `test/core/quantize/suggest.test.ts`.
   - Builds: `suggestCount(peaks: Peak[]): number`: the `distinct` peaks (see 3.1) with share ≥ 0.2%, clamped to 2..16. Same colours `findPalette` picks first, so the suggested count returns exactly the art's colours; a gradient counts once.
   - Tests: `triforce` gives 2; `sixColours` gives 6.
