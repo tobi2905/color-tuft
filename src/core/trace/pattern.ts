@@ -1,13 +1,15 @@
 import { connectedRegions } from '../cleanup/regions'
 import type { Edge, LabelMap, PathSeg, Pt, Region, RingRef, RugSize, VectorPattern } from '../types'
 import { traceBorders } from './borders'
-import { samePoint } from './corners'
+import { DEFAULT_WINDOW_POINTS, samePoint } from './corners'
 import { DEFAULT_CORNER_ANGLE_DEG, DEFAULT_TOLERANCE_MM, fitEdge } from './fit'
 
 /**
  * The colour map as a vector pattern: smooth shared borders and the areas they enclose.
  *
- * 1. Trace every border once (traceBorders) and fit it once (fitEdge).
+ * 1. Trace every border once (traceBorders) and fit it once (fitEdge). `sourcePxMm`: how big
+ *    one pixel of the original image is on the rug; enlarged images get a longer corner
+ *    window and a looser tolerance, so their bigger pixel steps don't read as corners.
  * 2. Areas are the 4-connected patches of the map (connectedRegions); the outside is none.
  * 3. Each area gets its rings: the outer boundary and one ring per hole. A ring is a list of
  *    edges, each walked forwards or backwards so the area is always on the left. Two
@@ -15,10 +17,21 @@ import { DEFAULT_CORNER_ANGLE_DEG, DEFAULT_TOLERANCE_MM, fitEdge } from './fit'
  *    Walking with the area on the left makes outer rings and holes go round in opposite
  *    directions.
  */
-export function buildPattern(map: LabelMap, rug: RugSize): VectorPattern {
+export function buildPattern(
+  map: LabelMap,
+  rug: RugSize,
+  opts: { sourcePxMm?: number } = {},
+): VectorPattern {
   const traced = traceBorders(map).edges
   const { ids, regions: infos } = connectedRegions(map)
-  const fitOpts = { toleranceMm: DEFAULT_TOLERANCE_MM, cornerAngleDeg: DEFAULT_CORNER_ANGLE_DEG }
+  // An image enlarged onto the rug has staircases of steps one source pixel long: the corner
+  // window and the tolerance scale with that, never below the defaults.
+  const stepPx = Math.max(1, (opts.sourcePxMm ?? 0) / map.mmPerPx)
+  const fitOpts = {
+    toleranceMm: Math.max(DEFAULT_TOLERANCE_MM, stepPx * map.mmPerPx), // one source pixel
+    cornerAngleDeg: DEFAULT_CORNER_ANGLE_DEG,
+    windowPoints: Math.round(DEFAULT_WINDOW_POINTS * stepPx),
+  }
 
   const edges: Edge[] = traced.map((t, id) => ({
     id,

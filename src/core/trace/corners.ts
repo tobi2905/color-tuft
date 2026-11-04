@@ -1,23 +1,29 @@
 import type { Pt } from '../types'
 
 /**
- * How many points back and ahead the direction is measured. Traced edges have a point at
- * every pixel corner, so this is 3 pixel steps: enough for the steps of any pixel staircase
- * to average out (they turn at most ~37° over 3 steps), short enough for small shapes.
+ * How many points back and ahead the direction is measured, by default. Traced edges have a
+ * point at every pixel corner, so this is 3 pixel steps: enough for the steps of any pixel
+ * staircase to average out (they turn at most ~37° over 3 steps), short enough for small
+ * shapes. An image enlarged k× has steps k pixels long and needs a window k× as long.
  */
-const WINDOW = 3
+export const DEFAULT_WINDOW_POINTS = 3
 
 /**
  * Indices of the real corners of a traced edge. At every point, the direction coming in
- * (from WINDOW points back) is compared with the direction going out (to WINDOW points
+ * (from `windowPoints` back) is compared with the direction going out (to `windowPoints`
  * ahead). A turn of at least cornerAngleDeg makes the point a candidate; of each run of
  * neighbouring candidates only the sharpest is a corner.
  *
  * A closed edge (first point = last point) is treated as a ring, so a corner can sit where
  * the loop starts; its indices refer to the points without the repeated last one. On an
- * open edge, points closer than WINDOW to an end are never corners (its ends are kept anyway).
+ * open edge, points closer than the window to an end are never corners (its ends are kept
+ * anyway).
  */
-export function findCorners(points: Pt[], opts: { cornerAngleDeg: number }): number[] {
+export function findCorners(
+  points: Pt[],
+  opts: { cornerAngleDeg: number; windowPoints?: number },
+): number[] {
+  const WINDOW = opts.windowPoints ?? DEFAULT_WINDOW_POINTS
   const closed = points.length > 3 && samePoint(points[0], points[points.length - 1])
   const n = closed ? points.length - 1 : points.length
   if (n < 2 * WINDOW + 1) return []

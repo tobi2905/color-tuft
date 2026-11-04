@@ -1,11 +1,12 @@
 import type { PathSeg, Pt } from '../types'
-import { findCorners, samePoint } from './corners'
+import { DEFAULT_WINDOW_POINTS, findCorners, samePoint } from './corners'
 
 export const DEFAULT_TOLERANCE_MM = 1.0
 export const DEFAULT_CORNER_ANGLE_DEG = 60
 
-/** Directions at the ends of a piece are measured over this many points, so pixel steps average out. */
-const TANGENT_WINDOW = 4
+/** Directions at the ends of a piece are measured over this many points (by default), so
+ *  pixel steps average out. It grows with the corner window for enlarged images. */
+const DEFAULT_TANGENT_WINDOW = 4
 /** How often the curve's parameters are refined before splitting (Schneider: a few rounds). */
 const REFINE_ROUNDS = 4
 
@@ -15,30 +16,37 @@ const REFINE_ROUNDS = 4
  * 1. Real corners (findCorners) and the edge's ends split it into pieces. A closed loop is
  *    started at a corner, so no side gets cut in two where the loop happens to begin.
  *    Each piece is fitted through the midpoints of its pixel sides (see sideMidpoints).
- * 2. A piece within toleranceMm of the straight line between its ends becomes one line.
- * 3. Otherwise cubic Béziers are fitted (Schneider, Graphics Gems 1990): least-squares control
+ * 2. A piece whose points all lie within toleranceMm of their best-fitting straight line
+ *    (least squares) is a line.
+ * 3. A corner between two lines moves to where those lines cross (as Potrace does), if that is
+ *    within 2 × toleranceMm of where it was traced: the true tip, not the blunted pixel tip.
+ *    Corners next to a curve and the ends of an open edge stay where they are; the ends are
+ *    nodes shared with other borders.
+ * 4. Other pieces get cubic Béziers (Schneider, Graphics Gems 1990): least-squares control
  *    points for the given end directions; if still too far off, the curve's parameters are
  *    refined, and if that isn't enough the piece is split at its worst point and both halves
  *    are fitted with the same direction at the split, so they join without a kink.
- *
- * The ends of an open edge stay exactly where they are: they are nodes shared with other borders.
  */
 export function fitEdge(
   points: Pt[],
-  opts: { toleranceMm: number; cornerAngleDeg: number },
+  opts: { toleranceMm: number; cornerAngleDeg: number; windowPoints?: number },
 ): { start: Pt; segs: PathSeg[] } {
   if (points.length < 2) return { start: points[0], segs: [] }
   const tol = opts.toleranceMm
+  const tangentWindow = Math.max(
+    DEFAULT_TANGENT_WINDOW,
+    (opts.windowPoints ?? DEFAULT_WINDOW_POINTS) + 1,
+  )
   const closed = points.length > 3 && samePoint(points[0], points[points.length - 1])
   const corners = findCorners(points, opts)
 
   if (!closed) {
     const breaks = [0, ...corners, points.length - 1]
-    const segs: PathSeg[] = []
-    for (let k = 0; k + 1 < breaks.length; k++) {
-      segs.push(...fitPiece(sideMidpoints(points.slice(breaks[k], breaks[k + 1] + 1)), tol))
-    }
-    return { start: points[0], segs }
+    const pieces = breaks
+      .slice(0, -1)
+      .map((b, k) => sideMidpoints(points.slice(b, breaks[k + 1] + 1)))
+    const movable = breaks.map((_, k) => k > 0 && k < breaks.length - 1)
+    return fitPieces(pieces, movable, false, tol, tangentWindow)
   }
 
   const ring = points.slice(0, -1)
@@ -47,18 +55,97 @@ export function fitEdge(
     // A smooth loop: start anywhere (here: the first side's midpoint), with the same
     // direction leaving and arriving there.
     const mids = ring.map((p, i) => midpoint(p, ring[(i + 1) % n]))
-    const t = direction(mids[n - TANGENT_WINDOW], mids[TANGENT_WINDOW])
-    return { start: mids[0], segs: fitCurves([...mids, mids[0]], t, negate(t), tol) }
+    const t = direction(mids[n - tangentWindow], mids[tangentWindow])
+    return { start: mids[0], segs: fitCurves([...mids, mids[0]], t, negate(t), tol, tangentWindow) }
   }
   // Rotate the ring to start at the first corner; then pieces run from corner to corner.
   const shift = corners[0]
   const rotated = [...ring.slice(shift), ...ring.slice(0, shift), ring[shift]]
   const breaks = [...corners.map((c) => c - shift), n]
-  const segs: PathSeg[] = []
-  for (let k = 0; k + 1 < breaks.length; k++) {
-    segs.push(...fitPiece(sideMidpoints(rotated.slice(breaks[k], breaks[k + 1] + 1)), tol))
+  const pieces = breaks
+    .slice(0, -1)
+    .map((b, k) => sideMidpoints(rotated.slice(b, breaks[k + 1] + 1)))
+  return fitPieces(
+    pieces,
+    breaks.map(() => true),
+    true,
+    tol,
+    tangentWindow,
+  )
+}
+
+type Line = { centre: Pt; dir: Pt }
+
+/**
+ * Steps 2–4 for consecutive pieces; piece k runs from break k to break k + 1. `movable[k]`:
+ * may break k move to where two lines cross. In a closed loop the last break is the first.
+ */
+function fitPieces(
+  pieces: Pt[][],
+  movable: boolean[],
+  closed: boolean,
+  tol: number,
+  tangentWindow: number,
+): { start: Pt; segs: PathSeg[] } {
+  const count = pieces.length
+  const lines = pieces.map((p) => straightLine(p, tol))
+  const pos = [...pieces.map((p) => p[0]), pieces[count - 1][pieces[count - 1].length - 1]]
+
+  for (let k = 0; k <= count; k++) {
+    if (!movable[k] || (closed && k === count)) continue
+    const before = k > 0 ? lines[k - 1] : closed ? lines[count - 1] : null
+    const after = k < count ? lines[k] : null
+    if (!before || !after) continue
+    const cross = intersection(before, after)
+    if (cross && Math.hypot(cross.x - pos[k].x, cross.y - pos[k].y) <= 2 * tol) pos[k] = cross
   }
-  return { start: ring[shift], segs }
+  if (closed) pos[count] = pos[0]
+
+  const segs: PathSeg[] = []
+  for (let k = 0; k < count; k++) {
+    const pts = [pos[k], ...pieces[k].slice(1, -1), pos[k + 1]]
+    if (lines[k] && maxDistanceToChord(pts) <= tol) segs.push({ kind: 'line', to: pos[k + 1] })
+    else segs.push(...fitPiece(pts, tol, tangentWindow))
+  }
+  return { start: pos[0], segs }
+}
+
+/**
+ * The best-fitting straight line through the points (least squares: through their average,
+ * along the direction they spread most), or null if any point is further than tol from it.
+ */
+function straightLine(pts: Pt[], tol: number): Line | null {
+  let cx = 0
+  let cy = 0
+  for (const p of pts) {
+    cx += p.x
+    cy += p.y
+  }
+  cx /= pts.length
+  cy /= pts.length
+  let sxx = 0
+  let sxy = 0
+  let syy = 0
+  for (const p of pts) {
+    sxx += (p.x - cx) ** 2
+    sxy += (p.x - cx) * (p.y - cy)
+    syy += (p.y - cy) ** 2
+  }
+  // Direction of most spread: angle of the main axis of the 2 × 2 covariance.
+  const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy)
+  const dir = { x: Math.cos(angle), y: Math.sin(angle) }
+  for (const p of pts) {
+    if (Math.abs((p.x - cx) * dir.y - (p.y - cy) * dir.x) > tol) return null
+  }
+  return { centre: { x: cx, y: cy }, dir }
+}
+
+/** Where two lines cross, or null if they are (almost) parallel. */
+function intersection(a: Line, b: Line): Pt | null {
+  const cross = a.dir.x * b.dir.y - a.dir.y * b.dir.x
+  if (Math.abs(cross) < 1e-9) return null
+  const t = ((b.centre.x - a.centre.x) * b.dir.y - (b.centre.y - a.centre.y) * b.dir.x) / cross
+  return { x: a.centre.x + t * a.dir.x, y: a.centre.y + t * a.dir.y }
 }
 
 /**
@@ -76,20 +163,20 @@ function sideMidpoints(pts: Pt[]): Pt[] {
 }
 
 /** One piece between corners: a single line if close enough, otherwise curves. */
-function fitPiece(pts: Pt[], tol: number): PathSeg[] {
+function fitPiece(pts: Pt[], tol: number, tangentWindow: number): PathSeg[] {
   const end = pts[pts.length - 1]
   if (pts.length <= 2 || maxDistanceToChord(pts) <= tol) return [{ kind: 'line', to: end }]
-  const k = Math.min(TANGENT_WINDOW, pts.length - 1)
+  const k = Math.min(tangentWindow, pts.length - 1)
   const tStart = direction(pts[0], pts[k])
   const tEnd = direction(end, pts[pts.length - 1 - k]) // pointing back into the piece
-  return fitCurves(pts, tStart, tEnd, tol)
+  return fitCurves(pts, tStart, tEnd, tol, tangentWindow)
 }
 
 /**
  * Schneider's fit of points d[0..n-1] with cubic Béziers. tStart: unit direction leaving
  * d[0]; tEnd: unit direction from d[n-1] back into the curve.
  */
-function fitCurves(d: Pt[], tStart: Pt, tEnd: Pt, tol: number): PathSeg[] {
+function fitCurves(d: Pt[], tStart: Pt, tEnd: Pt, tol: number, tangentWindow: number): PathSeg[] {
   const first = d[0]
   const last = d[d.length - 1]
   if (d.length === 2) {
@@ -121,11 +208,11 @@ function fitCurves(d: Pt[], tStart: Pt, tEnd: Pt, tol: number): PathSeg[] {
 
   // Split at the worst point. Both halves share the direction there: no kink at the join.
   const split = Math.min(d.length - 2, Math.max(1, worst))
-  const k = Math.min(TANGENT_WINDOW, split, d.length - 1 - split)
+  const k = Math.min(tangentWindow, split, d.length - 1 - split)
   const tMid = direction(d[split - k], d[split + k])
   return [
-    ...fitCurves(d.slice(0, split + 1), tStart, negate(tMid), tol),
-    ...fitCurves(d.slice(split), tMid, tEnd, tol),
+    ...fitCurves(d.slice(0, split + 1), tStart, negate(tMid), tol, tangentWindow),
+    ...fitCurves(d.slice(split), tMid, tEnd, tol, tangentWindow),
   ]
 }
 

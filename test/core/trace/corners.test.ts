@@ -34,6 +34,11 @@ describe('findCorners', () => {
     expect(findCorners(staircase(pattern, 20), OPTS)).toEqual([])
   })
 
+  it('looks further with a bigger window: no corners on 2-pixel steps', () => {
+    expect(findCorners(staircase('RRDDDD', 15), OPTS).length).toBeGreaterThan(0)
+    expect(findCorners(staircase('RRDDDD', 15), { ...OPTS, windowPoints: 6 })).toEqual([])
+  })
+
   it('finds a corner where two straight staircases meet at 90°', () => {
     const down = staircase('RD', 20)
     const end = down[down.length - 1]

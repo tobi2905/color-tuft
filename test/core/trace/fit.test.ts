@@ -56,6 +56,14 @@ describe('fitEdge', () => {
     expect(segs.map((s) => s.kind)).toEqual(['line'])
   })
 
+  it('turns a staircase of 2-pixel steps (an image enlarged 2×) into one line with a 6-point window', () => {
+    // Every step of the enlarged staircase is two pixels long.
+    const pts = staircase('RRDDDD', 15)
+    expect(fitEdge(pts, OPTS).segs.length).toBeGreaterThan(1) // 3-point window: steps look like corners
+    const scaled = { toleranceMm: 2, cornerAngleDeg: 60, windowPoints: 6 } // one source pixel = 2 mm
+    expect(fitEdge(pts, scaled).segs.map((s) => s.kind)).toEqual(['line'])
+  })
+
   it('keeps a circle round: within 1 mm of the true circle, no stair steps, no kinks', () => {
     const size = 250
     const r = CIRCLE_RADIUS_SHARE * size // 100 mm at 1 mm per pixel
