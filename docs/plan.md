@@ -338,7 +338,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 **Done when:** you calibrate the projector with a ruler, project the mirrored Triforce outline onto the cloth and step through it yarn by yarn. Then you can tuft your first rug with the app.
 
-- [ ] **8.1 Projector maths.**
+- [X] **8.1 Projector maths.**
   - Files: `src/render/projector/transform.ts`, `test/render/transform.test.ts`.
   - Builds: `projectorTransform(opts: { rug: RugSize; viewport: { w: number; h: number }; pxPerMm: number; calibrationFactor: number; offsetPx: Pt; mirror: boolean }): { toScreen(p: Pt): Pt }` (pure); `calibrationFactor(expectedMm: number, measuredMm: number): number` **(you write)**.
   - Tests: measured 96 mm for an expected 100 mm gives a factor of 100/96; mirror maps the rug's left edge to the right edge; offset moves every point by exactly the offset.
