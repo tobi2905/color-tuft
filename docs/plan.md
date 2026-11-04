@@ -216,7 +216,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 **Done when:** specks are gone, nothing below the minimum detail size remains, and thin lines are flagged and can be thickened instead of vanishing.
 
-- [ ] **4.1 Find connected regions. (you write)**
+- [X] **4.1 Find connected regions. (you write)**
   - Files: `src/core/cleanup/regions.ts`, `test/core/cleanup/regions.test.ts`.
   - Builds: `connectedRegions(map: LabelMap): { ids: Int32Array; regions: { id: number; label: number; areaPx: number; bbox: [number, number, number, number] }[] }`, 4-connected flood fill with an explicit stack (no recursion).
   - Tests: `triforce` gives 3 gold regions and 1 background region (the fixture has small gaps between the triangles, so the middle hole joins the outside; see 1.3); `NO_LABEL` pixels form no region.
