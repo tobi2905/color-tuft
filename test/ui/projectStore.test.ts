@@ -257,4 +257,39 @@ describe('project store', () => {
     } as PipelineResult)
     expect(fresh.getState().palette[2].name).toBe('Colour 3')
   })
+
+  it('starts the projector mirrored and uncalibrated', () => {
+    expect(createProjectStore().getState().projector).toEqual({
+      pxPerMm: null,
+      factor: 1,
+      offsetPx: { x: 0, y: 0 },
+      mirror: true,
+    })
+  })
+
+  it('sets the starting scale once, and keeps it after that', () => {
+    const store = createProjectStore()
+    store.getState().initProjectorScale(1.5)
+    store.getState().initProjectorScale(2)
+    expect(store.getState().projector.pxPerMm).toBe(1.5)
+  })
+
+  it('builds each measurement on the last: 96 mm, then 101 mm', () => {
+    const store = createProjectStore()
+    store.getState().applyMeasurement(96)
+    expect(store.getState().projector.factor).toBeCloseTo(100 / 96, 12)
+    store.getState().applyMeasurement(101)
+    expect(store.getState().projector.factor).toBeCloseTo((100 / 96) * (100 / 101), 12)
+    store.getState().resetCalibration()
+    expect(store.getState().projector.factor).toBe(1)
+  })
+
+  it('nudges the picture and toggles mirroring', () => {
+    const store = createProjectStore()
+    store.getState().nudge(1, 0)
+    store.getState().nudge(-10, 10)
+    expect(store.getState().projector.offsetPx).toEqual({ x: -9, y: 10 })
+    store.getState().setMirror(false)
+    expect(store.getState().projector.mirror).toBe(false)
+  })
 })

@@ -3,6 +3,7 @@ import { usePipelineSync } from './hooks/usePipelineSync'
 import { STEP_LABELS } from './stepLabels'
 import { ColoursStep } from './steps/ColoursStep'
 import { OutlineStep } from './steps/OutlineStep'
+import { CalibrationView } from './projector/CalibrationView'
 import { SetupStep } from './steps/SetupStep'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
@@ -13,7 +14,6 @@ const COMING_IN: Partial<Record<Step, string>> = {
   colours: '6.4',
   preview: '12.3',
   yarn: '9.6',
-  projector: '8.2',
 }
 
 export default function App() {
@@ -48,6 +48,8 @@ export default function App() {
           <ColoursStep />
         ) : step === 'outline' ? (
           <OutlineStep />
+        ) : step === 'projector' ? (
+          <CalibrationView />
         ) : (
           <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
         )}

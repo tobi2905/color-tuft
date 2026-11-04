@@ -3,7 +3,8 @@ import { oklabToSrgb, rgbToHex } from '../../core/color/convert'
 import { deltaE } from '../../core/color/distance'
 import type { PipelineResult } from '../../core/pipeline'
 import type { BackgroundEdit } from '../../core/outline/backgroundEdits'
-import type { ImageGrid, OKLab, PaletteEntry, RugSize } from '../../core/types'
+import type { ImageGrid, OKLab, PaletteEntry, Pt, RugSize } from '../../core/types'
+import { calibrationFactor } from '../../render/projector/transform'
 
 export const STEPS = ['setup', 'colours', 'outline', 'preview', 'yarn', 'projector'] as const
 export type Step = (typeof STEPS)[number]
@@ -49,6 +50,9 @@ export type ProjectState = {
   /** Border yarn (shaped) and background yarn (rectangle); null = automatic. */
   borderColour: OKLab | null
   backgroundColour: OKLab | null
+  /** Projector: starting scale (screen px per mm, set once), calibration correction, nudge
+   *  (px) and mirroring (on by default: tufting is done from the back of the cloth). */
+  projector: { pxPerMm: number | null; factor: number; offsetPx: Pt; mirror: boolean }
 }
 
 export type ProjectActions = {
@@ -71,6 +75,11 @@ export type ProjectActions = {
   undoBackgroundEdit(index: number): void
   setBorderColour(colour: OKLab | null): void
   setBackgroundColour(colour: OKLab | null): void
+  initProjectorScale(pxPerMm: number): void
+  applyMeasurement(measuredMm: number): void
+  resetCalibration(): void
+  nudge(dx: number, dy: number): void
+  setMirror(mirror: boolean): void
 }
 
 export type ProjectStore = ReturnType<typeof createProjectStore>
@@ -99,6 +108,7 @@ const initialState: ProjectState = {
   backgroundEdits: [],
   borderColour: null,
   backgroundColour: null,
+  projector: { pxPerMm: null, factor: 1, offsetPx: { x: 0, y: 0 }, mirror: true },
 }
 
 /**
@@ -186,6 +196,31 @@ export function createProjectStore() {
       undoBackgroundEdit: (index) =>
         set({ backgroundEdits: get().backgroundEdits.filter((_, i) => i !== index) }),
       setBorderColour: (borderColour) => set({ borderColour }),
+      initProjectorScale(pxPerMm) {
+        if (get().projector.pxPerMm === null) set({ projector: { ...get().projector, pxPerMm } })
+      },
+      applyMeasurement(measuredMm) {
+        // The bar was drawn 100 mm long with the current factor: correct on top of it.
+        const projector = get().projector
+        set({
+          projector: {
+            ...projector,
+            factor: projector.factor * calibrationFactor(100, measuredMm),
+          },
+        })
+      },
+      resetCalibration: () =>
+        set({ projector: { ...get().projector, factor: 1, offsetPx: { x: 0, y: 0 } } }),
+      nudge(dx, dy) {
+        const projector = get().projector
+        set({
+          projector: {
+            ...projector,
+            offsetPx: { x: projector.offsetPx.x + dx, y: projector.offsetPx.y + dy },
+          },
+        })
+      },
+      setMirror: (mirror) => set({ projector: { ...get().projector, mirror } }),
       setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
       mergeColour(fromNumber, intoNumber) {
         const palette = get().palette

@@ -343,9 +343,9 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: `projectorTransform(opts: { rug: RugSize; viewport: { w: number; h: number }; pxPerMm: number; calibrationFactor: number; offsetPx: Pt; mirror: boolean }): { toScreen(p: Pt): Pt }` (pure); `calibrationFactor(expectedMm: number, measuredMm: number): number` **(you write)**.
   - Tests: measured 96 mm for an expected 100 mm gives a factor of 100/96; mirror maps the rug's left edge to the right edge; offset moves every point by exactly the offset.
   - Commit: `feat(render): projector transform`
-- [ ] **8.2 Calibration screen.**
-  - Files: `src/render/projector/calibration.ts`, `src/ui/projector/CalibrationView.tsx`.
-  - Builds: rug bounding frame with corner crosshairs, a 10 cm bar and a 10 × 10 cm square outside the rug area; input "I measured \_\_ cm"; arrow keys nudge 1 px, Shift + arrow 10 px.
+- [X] **8.2 Calibration screen.**
+  - Files: `src/render/projector/calibration.ts` (`calibrationLayout`, tested; `drawCalibration`), `src/ui/projector/CalibrationView.tsx`, `test/render/calibration.test.ts`; the store gains `projector: { pxPerMm, factor, offsetPx, mirror }`.
+  - Builds: rug bounding frame with corner crosshairs, a 10 cm bar and a 10 × 10 cm square outside the rug area (below it if there is room, else above, right or left, else in a corner); input "I measured __ cm" (each measurement corrects on top of the last: factor × 100 / measured); Reset; arrow keys nudge 1 px, Shift + arrow 10 px; mirror on by default (tufting from the back); the starting scale is set once, to fit the whole rug, so a calibration stays valid; a Fullscreen button for the projector; in fullscreen a faint "Adjust" button in the corner opens the same controls (Hide folds them away). After applying a measurement the field lets go of the keyboard, so the arrow keys work at once.
   - Check: on your monitor, set the measured value from a ruler; the bar then measures 10.0 cm.
   - Commit: `feat: projector calibration`
 - [ ] **8.3 Pattern layers.**

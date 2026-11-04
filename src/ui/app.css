@@ -438,3 +438,79 @@ button.link {
   padding: 0;
   border: 1px solid #c9c6be;
 }
+
+.projector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 1rem;
+  align-items: start;
+}
+
+.projector-stage {
+  position: relative;
+  height: 70vh;
+  background: #000;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.projector-stage:fullscreen {
+  border-radius: 0;
+}
+
+.projector-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.steps-list {
+  padding-left: 1.2rem;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 50rem) {
+  .projector {
+    grid-template-columns: 1fr;
+  }
+}
+
+.projector-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+.projector-overlay:hover,
+.projector-overlay:focus-within,
+.projector-overlay.open {
+  opacity: 1;
+}
+
+.projector-overlay.open {
+  width: 20rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.projector-overlay > button,
+.projector-overlay .link {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #fff;
+  border-radius: 0.4rem;
+  background: #1d1d1f;
+  color: #fff;
+  cursor: pointer;
+}
+
+.projector-overlay.open .link {
+  margin-top: 0.5rem;
+  background: none;
+  color: #1d1d1f;
+  border: none;
+  text-decoration: underline;
+}
