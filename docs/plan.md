@@ -251,16 +251,16 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: `traceBorders(map: LabelMap): { nodes: Pt[]; edges: { left: number; right: number; points: Pt[] }[] }`. Walks pixel cracks between different labels; a node is any corner where 3 or more labels meet; each border between two labels is one edge, stored once; points in mm.
   - Tests: a map split in half gives one straight edge; `triforce` edges close into rings around every region; no two edges share the same left/right pair and points.
   - Commit: `feat(core): trace shared borders`
-- [ ] **5.2 Fit curves with corner detection.**
+- [X] **5.2 Fit curves with corner detection.**
   - Files: `src/core/trace/corners.ts`, `src/core/trace/fit.ts`, tests in `test/core/trace/`.
   - Builds: `findCorners(points: Pt[], opts: { cornerAngleDeg: number }): number[]`; `fitEdge(points: Pt[], opts: { toleranceMm: number; cornerAngleDeg: number }): { start: Pt; segs: PathSeg[] }` (returns `start` because a closed loop is restarted at its first corner, so no side is cut where the loop happened to begin): split at corners and ends, fit each piece through the midpoints of its pixel sides (pixel corners stick out up to ~1.1 px; midpoints lie within ~0.5 px of the true line), keeping corners and ends exact; try one straight line per piece, else fit cubic Béziers (Schneider's algorithm) until within tolerance, with a shared direction at every split so curves join without kinks. Defaults `toleranceMm = 1.0`, `cornerAngleDeg = 60`; corners are measured over 3 pixel steps.
   - Tests: each Triforce side becomes one `line` segment and each tip stays a corner; a 45° pixel staircase becomes one straight line; `circle` with 100 mm radius stays within 1 mm of the true circle and the turn between neighbouring segments at non-corners is under 15° (no stair steps).
   - Walkthrough: least-squares fitting, Bézier control points, why tolerance and corner angle are the two knobs.
   - Commit: `feat(core): curve fitting with corners`
-- [ ] **5.3 Build the vector pattern.**
+- [X] **5.3 Build the vector pattern.**
   - Files: `src/core/trace/pattern.ts`, `src/core/geometry.ts`, tests.
-  - Builds: `buildPattern(map: LabelMap, rug: RugSize): VectorPattern` (trace, fit each edge once, assemble rings); `ringToPolygon(pattern, ring, stepsPerCurve): Pt[]`; `polygonArea(p: Pt[]): number` **(you write)**.
-  - Tests: each region's vector area is within 1% of its pixel area; every edge is used by exactly two regions, or one region and the outside.
+  - Builds: `buildPattern(map: LabelMap, rug: RugSize): VectorPattern` (trace, fit each edge once, assemble rings with the region always on the left, so outer rings and holes go round in opposite directions); `ringToPolygon(pattern, ring, stepsPerCurve): Pt[]`; `polygonArea(p: Pt[]): number` and `signedArea(p: Pt[]): number` (shoelace).
+  - Tests: at rug scale (shapes several hundred pixels across) each region's vector area is within 1% of its pixel area; at any size no border moves by more than 0.5 mm on average (area difference ÷ border length); every edge is used by exactly two regions, or one region and the outside; every ring closes.
   - Commit: `feat(core): vector pattern`
 - [ ] **5.4 Run the whole pipeline.**
   - Files: `src/core/pipeline.ts`, `test/core/pipeline.test.ts`.
