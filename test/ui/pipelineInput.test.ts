@@ -116,7 +116,17 @@ describe('pipelineInputFrom', () => {
     expect([input.borderColour, input.backgroundColour]).toEqual([null, null])
   })
 
-  it('includes shape and background clicks in the image key, but not the border width', () => {
+  it('keys only "bring back" clicks into the image (removing works on the pattern)', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    const k1 = imageKeyFrom(store.getState())
+    store.getState().addBackgroundEdit({ at: { x: 1, y: 2 }, background: true })
+    expect(imageKeyFrom(store.getState())).toBe(k1)
+    store.getState().addBackgroundEdit({ at: { x: 3, y: 4 }, background: false })
+    expect(imageKeyFrom(store.getState())).not.toBe(k1)
+  })
+
+  it('includes the shape and bring-back clicks in the image key, but not the border width', () => {
     const store = createProjectStore()
     store.getState().setSource({ grid, name: 'a.png', downscaled: false })
     const k1 = imageKeyFrom(store.getState())
@@ -125,7 +135,7 @@ describe('pipelineInputFrom', () => {
     store.getState().setShape('rectangle')
     const k2 = imageKeyFrom(store.getState())
     expect(k2).not.toBe(k1)
-    store.getState().addBackgroundEdit({ at: { x: 1, y: 2 }, background: true })
+    store.getState().addBackgroundEdit({ at: { x: 1, y: 2 }, background: false })
     expect(imageKeyFrom(store.getState())).not.toBe(k2)
   })
 })

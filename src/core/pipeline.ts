@@ -126,7 +126,10 @@ export function prepareImage(
     // transparency. The background becomes transparent, so it is outside the rug from here on.
     const found = detectBackground(image)
     background = found.method
-    const mask = applyBackgroundEdits(image, found.mask, input.backgroundEdits, input.rug)
+    // Only "bring back" clicks act on the image (a detected backdrop gets its colours back).
+    // Removing works on the pattern's areas, in finishPipeline.
+    const restore = input.backgroundEdits.filter((e) => !e.background)
+    const mask = applyBackgroundEdits(image, found.mask, restore, input.rug)
     const data = new Uint8ClampedArray(image.data)
     for (let p = 0; p < mask.length; p++) if (mask[p]) data[p * 4 + 3] = 0
     image = { ...image, data }
@@ -195,20 +198,34 @@ export function finishPipeline(prepared: PreparedImage, input: PipelineInput): P
   let borderLabel: number | null = null
   let artOriginMm: Pt = { x: 0, y: 0 }
   if (input.shape === 'shaped') {
+    // "Remove" clicks: the whole area of the pattern under the click becomes background.
+    // The border yarn follows the art's outer edge as found, not as changed by removals.
+    const edge = mostCommonEdgeLabel(map)
+    const removals = input.backgroundEdits.filter((e) => e.background).map((e) => e.at)
+    if (removals.length > 0) map = removeAreas(map, removals)
+
     const padPx = Math.ceil((input.offsetMm + input.smoothMm) / map.mmPerPx) + 2
     map = padMap(map, padPx)
     artOriginMm = { x: padPx * map.mmPerPx, y: padPx * map.mmPerPx }
     const art = new Uint8Array(map.labels.length)
     for (let p = 0; p < art.length; p++) art[p] = map.labels[p] === NO_LABEL ? 0 : 1
-    const rug = cutRug(art, map.width, map.height, map.mmPerPx, {
-      offsetMm: input.offsetMm,
-      smoothMm: input.smoothMm,
-    })
+    const cutOpts = { offsetMm: input.offsetMm, smoothMm: input.smoothMm }
+    let rug = cutRug(art, map.width, map.height, map.mmPerPx, cutOpts)
+    // "Bring back" clicks on a hole the cut line goes around (a see-through hole in the art,
+    // or a removed area): the hole stays part of the rug, filled with the border yarn below.
+    let filled = false
+    for (const e of input.backgroundEdits.filter((e) => !e.background)) {
+      const hole = holeAt(rug.mask, map, { x: e.at.x + artOriginMm.x, y: e.at.y + artOriginMm.y })
+      for (const p of hole) art[p] = 1
+      filled ||= hole.length > 0
+    }
+    if (filled) rug = cutRug(art, map.width, map.height, map.mmPerPx, cutOpts)
     cut = rug.loops
     const band: number[] = []
-    for (let p = 0; p < art.length; p++) if (rug.mask[p] && !art[p]) band.push(p)
+    for (let p = 0; p < art.length; p++) {
+      if ((rug.mask[p] || art[p]) && map.labels[p] === NO_LABEL) band.push(p)
+    }
     if (band.length > 0) {
-      const edge = mostCommonEdgeLabel(map)
       const colour = input.borderColour ?? (edge === null ? null : palette[edge])
       if (colour) {
         borderLabel = labelFor(colour)
@@ -240,6 +257,63 @@ export function finishPipeline(prepared: PreparedImage, input: PipelineInput): P
     background: prepared.background,
     artOriginMm,
   }
+}
+
+/** Each clicked area of the pattern (the connected patch of its colour) becomes outside. */
+function removeAreas(map: LabelMap, points: Pt[]): LabelMap {
+  const { width: w, height: h } = map
+  const labels = Uint8Array.from(map.labels)
+  for (const at of points) {
+    const x = Math.floor(at.x / map.mmPerPx)
+    const y = Math.floor(at.y / map.mmPerPx)
+    if (x < 0 || y < 0 || x >= w || y >= h) continue
+    const start = y * w + x
+    const label = labels[start]
+    if (label === NO_LABEL) continue
+    for (const p of floodFill(w, h, start, (q) => labels[q] === label)) labels[p] = NO_LABEL
+  }
+  return { ...map, labels }
+}
+
+/** The hole in the rug (outside its cut line, not open to the edge) at a point (mm), or []. */
+function holeAt(rugMask: Uint8Array, map: LabelMap, at: Pt): number[] {
+  const { width: w, height: h } = map
+  const x = Math.floor(at.x / map.mmPerPx)
+  const y = Math.floor(at.y / map.mmPerPx)
+  if (x < 0 || y < 0 || x >= w || y >= h || rugMask[y * w + x]) return []
+  const patch = floodFill(w, h, y * w + x, (q) => !rugMask[q])
+  const touchesEdge = patch.some((p) => {
+    const px = p % w
+    const py = (p - px) / w
+    return px === 0 || py === 0 || px === w - 1 || py === h - 1
+  })
+  return touchesEdge ? [] : patch
+}
+
+/** The 4-connected patch of pixels that `joins`, starting at `start`. */
+function floodFill(w: number, h: number, start: number, joins: (p: number) => boolean): number[] {
+  const seen = new Uint8Array(w * h)
+  const patch: number[] = []
+  const stack = [start]
+  seen[start] = 1
+  while (stack.length > 0) {
+    const p = stack.pop()!
+    patch.push(p)
+    const x = p % w
+    const y = (p - x) / w
+    for (const q of [
+      x > 0 ? p - 1 : -1,
+      x < w - 1 ? p + 1 : -1,
+      y > 0 ? p - w : -1,
+      y < h - 1 ? p + w : -1,
+    ]) {
+      if (q !== -1 && !seen[q] && joins(q)) {
+        seen[q] = 1
+        stack.push(q)
+      }
+    }
+  }
+  return patch
 }
 
 /** The map with `padPx` pixels of outside (NO_LABEL) added on every side. */

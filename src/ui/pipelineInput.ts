@@ -8,8 +8,9 @@ import type { ProjectState } from './store/projectStore'
  * the same rug size. Colour settings are not part of it, so changing them skips the image work.
  */
 export function imageKeyFrom(state: ProjectState): string {
-  // Shape and background clicks decide which pixels are background: part of the image stage.
-  return `${state.sourceId}|${state.rug.widthMm}x${state.rug.heightMm}|${state.shape}|${JSON.stringify(state.backgroundEdits)}`
+  // Only "bring back" clicks act on the image itself; removing works on the pattern.
+  const restores = state.backgroundEdits.filter((e) => !e.background)
+  return `${state.sourceId}|${state.rug.widthMm}x${state.rug.heightMm}|${state.shape}|${JSON.stringify(restores)}`
 }
 
 /** Seed for the pipeline's random choices: fixed, so the same project gives the same pattern. */

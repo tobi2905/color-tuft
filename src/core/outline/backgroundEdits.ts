@@ -11,7 +11,8 @@ export type BackgroundEdit = { at: Pt; background: boolean }
  * background), in order, and returns a new mask.
  * - background: true on art: the touching area of that colour (within deltaE 6, like a magic
  *   wand) becomes background.
- * - background: false on background: that connected patch of background becomes art again.
+ * - background: false on background: that connected patch of opaque background becomes art
+ *   again. See-through pixels stay background (the pipeline fills enclosed holes instead).
  * Points are in mm on the art area of `rug`; they are mapped back to image pixels by undoing
  * fitToRug's fit-and-centre.
  */
@@ -40,8 +41,9 @@ export function applyBackgroundEdits(
       const colour = lab(start)
       joins = (p) =>
         !out[p] && data[p * 4 + 3] >= 128 && deltaE(lab(p), colour) < BACKGROUND_DELTA_E
-    } else if (!edit.background && out[start]) {
-      joins = (p) => out[p] === 1
+    } else if (!edit.background && out[start] && data[start * 4 + 3] >= 128) {
+      // See-through pixels have no colour to bring back: only opaque background returns.
+      joins = (p) => out[p] === 1 && data[p * 4 + 3] >= 128
     } else continue // already what was asked
 
     // Flood fill (4-connected, explicit stack), flipping each pixel as it joins.

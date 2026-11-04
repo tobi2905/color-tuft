@@ -330,7 +330,53 @@ describe('runPipeline: shaped and rectangular rugs', () => {
     const input = shaped({ image: smallEye(400, 0.01), offsetMm: 5 }) // yellow face on white
     const eyeAt = { x: 400 / 2 - 0.15 * 400, y: 400 / 2 - 0.1 * 400 }
     const r = runPipeline({ ...input, backgroundEdits: [{ at: eyeAt, background: true }] })
-    expect(r.palette.some((p) => deltaE(p, srgbToOklab(FIXTURE.navy)) < 3)).toBe(false)
+    const navy = r.palette.findIndex((p) => deltaE(p, srgbToOklab(FIXTURE.navy)) < 3)
+    expect(navy === -1 || !r.map.labels.includes(navy)).toBe(true)
+  })
+
+  it('shaped: removing a textured area removes all of it, not just a speck around the click', () => {
+    // A noisy red disk on transparent, plus a white disk inside it: click the red.
+    const img = withSoftAlpha(withJpegNoise(circle(400), 35, 7), 2)
+    const input = shaped({ image: img, offsetMm: 5 })
+    const before = runPipeline(input)
+    const red = srgbToOklab(FIXTURE.red)
+    const redLabel = (r: typeof before) => r.palette.findIndex((p) => deltaE(p, red) < 6)
+    const count = (r: typeof before, l: number) => r.map.labels.filter((v) => v === l).length
+    expect(count(before, redLabel(before))).toBeGreaterThan(50_000)
+    const after = runPipeline({
+      ...input,
+      backgroundEdits: [{ at: { x: 200, y: 120 }, background: true }],
+    })
+    const l = redLabel(after)
+    expect(l === -1 ? 0 : count(after, l)).toBeLessThan(500)
+  })
+
+  it('shaped: bringing back a see-through hole fills it with the border yarn instead of cutting it out', () => {
+    // A red disk with a big transparent hole in the middle.
+    const img = withSoftAlpha(circle(400), 2)
+    for (let y = 0; y < 400; y++) {
+      for (let x = 0; x < 400; x++)
+        if (Math.hypot(x - 200, y - 200) < 70) img.data.set([0, 0, 255, 0], (y * 400 + x) * 4)
+    } // see-through, with leftover blue underneath (PNGs often keep junk colours there)
+    const input = shaped({
+      image: img,
+      count: null,
+      offsetMm: 5,
+      borderColour: srgbToOklab(FIXTURE.black),
+    })
+    const at = (r: ReturnType<typeof runPipeline>) =>
+      r.map.labels[
+        Math.round(r.artOriginMm.y + 200) * r.map.width + Math.round(r.artOriginMm.x + 200)
+      ]
+    const before = runPipeline(input)
+    expect(at(before)).toBe(NO_LABEL)
+    const after = runPipeline({
+      ...input,
+      backgroundEdits: [{ at: { x: 200, y: 200 }, background: false }],
+    })
+    expect(at(after)).toBe(after.roles.border)
+    expect(after.cut).toHaveLength(1) // only the outer cut, no hole to cut out
+    expect(after.palette).toEqual(before.palette) // the junk blue is not brought back
   })
 
   it('rectangle: fills empty space with the background yarn, nothing outside the rug', () => {
