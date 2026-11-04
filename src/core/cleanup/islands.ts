@@ -14,6 +14,9 @@ const OUTSIDE = -2
  *   so the loop always ends. Chains (a speck in a small ring in a big area) resolve at once.
  * - The outside (NO_LABEL) is never a neighbour to merge into. A speck with nothing but
  *   outside around it can't be tufted and is removed.
+ * - Tiny see-through holes inside the art (transparent pixels enclosed by colour, smaller
+ *   than the threshold) are filled with the colour around them: too small to cut or tuft.
+ *   Holes that are big enough, and transparency touching the edge, stay outside.
  * - First, corner-only contacts are closed (bridgeDiagonals). A thin diagonal or curved line
  *   is a staircase of pixels touching at corners; bridged, it is one long patch instead of
  *   hundreds of specks, so it is kept. Thin lines are never deleted here; 4.3 flags them.
@@ -21,6 +24,7 @@ const OUTSIDE = -2
 export function mergeSmallIslands(map: LabelMap, minAreaMm2: number): LabelMap {
   const { width: w, height: h } = map
   const labels = bridgeDiagonals(map).labels
+  fillSmallHoles(labels, map.width, map.height, minAreaMm2 / (map.mmPerPx * map.mmPerPx))
   const mm2PerPx = map.mmPerPx * map.mmPerPx
 
   while (true) {
@@ -95,4 +99,43 @@ function borderLengths(r: RegionInfo, ids: Int32Array, w: number, h: number): Ma
     }
   }
   return border
+}
+
+/**
+ * Fills each patch of NO_LABEL (4-connected) that doesn't touch the map's edge and is smaller
+ * than minAreaPx with the colour most common along its border. Changes `labels` in place.
+ */
+function fillSmallHoles(labels: Uint8Array, w: number, h: number, minAreaPx: number): void {
+  const seen = new Uint8Array(w * h)
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || labels[start] !== NO_LABEL) continue
+    const patch: number[] = []
+    const border = new Map<number, number>()
+    let touchesEdge = false
+    const stack = [start]
+    seen[start] = 1
+    while (stack.length > 0) {
+      const p = stack.pop()!
+      patch.push(p)
+      const x = p % w
+      const y = (p - x) / w
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) touchesEdge = true
+      for (const q of [
+        x > 0 ? p - 1 : -1,
+        x < w - 1 ? p + 1 : -1,
+        y > 0 ? p - w : -1,
+        y < h - 1 ? p + w : -1,
+      ]) {
+        if (q === -1) continue
+        if (labels[q] !== NO_LABEL) border.set(labels[q], (border.get(labels[q]) ?? 0) + 1)
+        else if (!seen[q]) {
+          seen[q] = 1
+          stack.push(q)
+        }
+      }
+    }
+    if (touchesEdge || patch.length >= minAreaPx || border.size === 0) continue
+    const fill = [...border].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0]
+    for (const p of patch) labels[p] = fill
+  }
 }

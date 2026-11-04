@@ -12,6 +12,7 @@ import {
 import { NO_LABEL, type OKLab } from '../../src/core/types'
 import {
   FIXTURE,
+  circle,
   smallEye,
   thinOutline,
   triforce,
@@ -180,6 +181,20 @@ describe('runPipeline', () => {
     expect(Math.abs(area(after, white) - area(before, white)) / area(before, white)).toBeLessThan(
       0.01,
     )
+  })
+
+  it('copes with tiny transparent specks inside the art', () => {
+    // A transparent PNG with single see-through pixels scattered inside the drawing.
+    const img = withSoftAlpha(circle(300), 2)
+    for (let i = 0; i < 40; i++) {
+      const x = 110 + ((i * 37) % 80)
+      const y = 110 + ((i * 53) % 80)
+      img.data[(y * 300 + x) * 4 + 3] = 0
+    }
+    const result = runPipeline(
+      base({ image: img, rug: { widthMm: 300, heightMm: 300 }, count: null }),
+    )
+    expect(result.pattern.regions.length).toBeGreaterThan(0)
   })
 
   it('gives the same result for the same input', () => {

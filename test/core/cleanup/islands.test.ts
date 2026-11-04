@@ -59,6 +59,18 @@ describe('mergeSmallIslands', () => {
     expect(new Set(mergeSmallIslands(map, 10).labels)).toEqual(new Set([0]))
   })
 
+  it('fills a tiny see-through hole inside the art with the colour around it', () => {
+    const map = mapFrom(1, '00000', '00000', '00.00', '00000', '00000')
+    expect(rowsOf(mergeSmallIslands(map, 4))).toEqual(['00000', '00000', '00000', '00000', '00000'])
+  })
+
+  it('keeps a see-through hole that is big enough, and outside that touches the edge', () => {
+    const big = mapFrom(1, '000000', '0..000', '0..000', '000000')
+    expect(rowsOf(mergeSmallIslands(big, 4))).toEqual(rowsOf(big)) // 4 mm² hole, threshold 4
+    const edge = mapFrom(1, '.0000', '00000', '00000')
+    expect(rowsOf(mergeSmallIslands(edge, 4))).toEqual(rowsOf(edge)) // touches the edge: outside
+  })
+
   it('never merges into the outside, but removes a speck that has nothing else around it', () => {
     const map = mapFrom(1, '..0000', '.10000', '......', '..2...')
     expect(rowsOf(mergeSmallIslands(map, 2))).toEqual(['..0000', '.00000', '......', '......'])

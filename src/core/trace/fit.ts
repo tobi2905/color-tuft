@@ -55,7 +55,9 @@ export function fitEdge(
     // A smooth loop: start anywhere (here: the first side's midpoint), with the same
     // direction leaving and arriving there.
     const mids = ring.map((p, i) => midpoint(p, ring[(i + 1) % n]))
-    const t = direction(mids[n - tangentWindow], mids[tangentWindow])
+    // Look at most half way round, so a tiny loop (4 points round one pixel) can't read past its end.
+    const k = Math.max(1, Math.min(tangentWindow, Math.floor(n / 2)))
+    const t = direction(mids[(n - k) % n], mids[k % n])
     return { start: mids[0], segs: fitCurves([...mids, mids[0]], t, negate(t), tol, tangentWindow) }
   }
   // Rotate the ring to start at the first corner; then pieces run from corner to corner.

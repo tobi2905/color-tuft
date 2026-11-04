@@ -121,4 +121,20 @@ describe('fitEdge', () => {
       ).segs,
     ).toEqual([{ kind: 'line', to: { x: 1, y: 0 } }])
   })
+
+  it('fits a tiny closed loop (the 4 corners around one pixel) without failing', () => {
+    const loop = [
+      { x: 5, y: 5 },
+      { x: 6, y: 5 },
+      { x: 6, y: 6 },
+      { x: 5, y: 6 },
+      { x: 5, y: 5 },
+    ]
+    for (const windowPoints of [3, 6, 9]) {
+      const { start, segs } = fitEdge(loop, { ...OPTS, windowPoints })
+      expect(segs.length).toBeGreaterThan(0)
+      for (const s of segs) expect(Number.isFinite(s.to.x + s.to.y)).toBe(true)
+      expect(Number.isFinite(start.x + start.y)).toBe(true)
+    }
+  })
 })
