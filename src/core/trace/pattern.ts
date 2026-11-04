@@ -162,3 +162,33 @@ function samplePath(start: Pt, segs: PathSeg[], stepsPerCurve: number): Pt[] {
   }
   return pts
 }
+
+/**
+ * A ring as one continuous closed path: the edges' lines and curves in order, edges walked
+ * backwards reversed (a reversed curve swaps its two control points). The region is on the
+ * left of the path, as everywhere in the pattern.
+ */
+export function ringToPath(pattern: VectorPattern, ring: RingRef): { start: Pt; segs: PathSeg[] } {
+  const segs: PathSeg[] = []
+  let start: Pt | null = null
+  for (const ref of ring) {
+    const edge = pattern.edges[ref.edgeId]
+    // The point each segment starts from: the edge's start, then each segment's end.
+    const from = [edge.start, ...edge.segs.map((s) => s.to)]
+    if (!ref.reversed) {
+      start ??= edge.start
+      segs.push(...edge.segs)
+    } else {
+      start ??= from[from.length - 1]
+      for (let k = edge.segs.length - 1; k >= 0; k--) {
+        const s = edge.segs[k]
+        segs.push(
+          s.kind === 'line'
+            ? { kind: 'line', to: from[k] }
+            : { kind: 'cubic', c1: s.c2, c2: s.c1, to: from[k] },
+        )
+      }
+    }
+  }
+  return { start: start!, segs }
+}

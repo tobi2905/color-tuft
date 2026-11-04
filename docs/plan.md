@@ -319,9 +319,9 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: `withSoftAlpha(triforce)` mask matches the shape within 2 px (soft edges round sharp tips by a pixel or two); `thinOutline` on a white background keeps white art enclosed by the outline; a busy image with no dominant border colour gives `'none'`.
   - Commit: `feat(core): background detection`
 - [ ] **7.2 Cut line with offset and smoothing.**
-  - Files: `src/core/outline/cutLine.ts`, `test/core/outline/cutLine.test.ts`.
-  - Builds: `cutLine(mask: Uint8Array, w: number, h: number, mmPerPx: number, opts: { offsetMm: number; smoothMm: number }): PathSeg[]`: grow by `offsetMm` (distance transform from 4.3), close notches narrower than `2 × smoothMm`, then trace and fit with 5.1 and 5.2.
-  - Tests: a 200 mm square with 20 mm offset gives an area within 2% of the expected rounded square; a 10 mm notch disappears at 8 mm smoothing.
+  - Files: `src/core/outline/cutLine.ts`, `test/core/outline/cutLine.test.ts`; `ringToPath` in `src/core/trace/pattern.ts`.
+  - Builds: `cutLine(art: Uint8Array, w: number, h: number, mmPerPx: number, opts: { offsetMm: number; smoothMm: number }): CutLoop[]` (`CutLoop = { start: Pt; segs: PathSeg[] }`; several loops, since a rug can have separate pieces and holes; the rug is on the left, so outer loops and holes go opposite ways): grow by `offsetMm` (distance transform from 4.3), close notches narrower than `2 × smoothMm` and round inner corners (grow by `smoothMm`, shrink back by the same), then trace and fit with 5.1–5.3. The grid is padded internally, so growth past its edge is never cut off. `ringToPath(pattern, ring)` turns a ring into one continuous path (reversed edges swap their control points).
+  - Tests: a 200 mm square with 20 mm offset gives an area within 2% of the expected rounded square; a 10 mm notch disappears at 8 mm smoothing but not at 4 mm; smoothing alone doesn't make a square bigger; growth reaches beyond the grid; one loop per separate piece, pieces closer than twice the offset merge; a ring-shaped piece of art keeps its hole as a loop going the other way; about 0.5 s for a 2 × 1.5 m rug.
   - Commit: `feat(core): cut line`
 - [ ] **7.3 Shape modes in the pipeline.**
   - Files: `src/core/pipeline.ts` (extend), `test/core/pipeline.test.ts` (extend).

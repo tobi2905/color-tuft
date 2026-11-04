@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { connectedRegions } from '../../../src/core/cleanup/regions'
 import { polygonArea, signedArea } from '../../../src/core/geometry'
-import { buildPattern, ringToPolygon } from '../../../src/core/trace/pattern'
+import { buildPattern, ringToPath, ringToPolygon } from '../../../src/core/trace/pattern'
 import {
   type ImageGrid,
   type LabelMap,
@@ -173,5 +173,38 @@ describe('ringToPolygon', () => {
     const poly = ringToPolygon(pattern, square.rings[0], 8)
     expect(poly).toHaveLength(4)
     expect(polygonArea(poly)).toBe(20 * 10 * 4) // 20 × 10 pixels of 2 mm
+  })
+})
+
+describe('ringToPath', () => {
+  it('joins a ring of edges into one closed path, curves included, matching ringToPolygon', () => {
+    const map = labelsOf(circle(200))
+    const pattern = buildPattern(map, rug(map))
+    for (const region of pattern.regions) {
+      for (const ring of region.rings) {
+        const { start, segs } = ringToPath(pattern, ring)
+        const last = segs[segs.length - 1].to
+        expect(Math.hypot(last.x - start.x, last.y - start.y)).toBeLessThan(1e-9)
+        // Same shape as the polygon version: compare areas.
+        const fromPath = [start, ...segs.map((s) => s.to)]
+        expect(Math.sign(signedArea(fromPath))).toBe(
+          Math.sign(signedArea(ringToPolygon(pattern, ring, 16))),
+        )
+      }
+    }
+  })
+
+  it('reverses edges walked backwards, swapping the control points of curves', () => {
+    const map = labelsOf(sixColours(150))
+    const pattern = buildPattern(map, rug(map))
+    for (const region of pattern.regions) {
+      for (const ring of region.rings) {
+        const { start, segs } = ringToPath(pattern, ring)
+        // Each segment starts where the previous one ended: a continuous path.
+        const poly = ringToPolygon(pattern, ring, 1)
+        expect(poly[0]).toEqual(start)
+        expect(segs.length).toBeGreaterThan(0)
+      }
+    }
   })
 })

@@ -44,7 +44,13 @@ export function applyMerges(
     }
   })
 
-  const labels = map.labels.map((l) => (l === NO_LABEL ? NO_LABEL : newLabel[root(l)]))
+  // New label per old label once, then a plain loop (a callback per pixel is far slower).
+  const relabel = palette.map((_, l) => newLabel[root(l)])
+  const labels = new Uint8Array(map.labels.length)
+  for (let p = 0; p < labels.length; p++) {
+    const l = map.labels[p]
+    labels[p] = l === NO_LABEL ? NO_LABEL : relabel[l]
+  }
   return { map: { ...map, labels }, palette: kept }
 }
 
