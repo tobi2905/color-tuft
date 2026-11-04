@@ -7,7 +7,7 @@ export default defineConfig({
   base: '/color-tuft/',
   plugins: [react()],
   test: {
-    include: ['test/**/*.test.ts'],
+    include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
     // Plain Node: no DOM, so a core module that touches the browser fails here too.
     environment: 'node',
   },

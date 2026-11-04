@@ -1,0 +1,37 @@
+import { Stepper } from './Stepper'
+import { STEP_LABELS } from './stepLabels'
+import { type Step, availableSteps } from './store/projectStore'
+import { useProject } from './store/useProject'
+
+/** Which task builds each step's screen; shown until it exists. */
+const COMING_IN: Record<Step, string> = {
+  setup: '6.3',
+  colours: '6.4',
+  outline: '7.4',
+  preview: '12.3',
+  yarn: '9.6',
+  projector: '8.2',
+}
+
+export default function App() {
+  // Select plain values (stable between renders), then work out the available steps.
+  const source = useProject((s) => s.source)
+  const result = useProject((s) => s.result)
+  const shape = useProject((s) => s.shape)
+  const step = useProject((s) => s.step)
+  const setStep = useProject((s) => s.setStep)
+  const available = availableSteps({ source, result, shape })
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>Color Tuft</h1>
+        <Stepper current={step} available={available} onSelect={setStep} />
+      </header>
+      <main className="app-main">
+        <h2>{STEP_LABELS[step]}</h2>
+        <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
+      </main>
+    </div>
+  )
+}

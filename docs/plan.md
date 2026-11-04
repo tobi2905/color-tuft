@@ -279,10 +279,10 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: with a fake worker that throws, `result` is unchanged and `error` is set; a slower older run never overwrites a newer one; the next good run clears the error.
   - Walkthrough: what a Web Worker is, why transferables avoid copying, how Comlink hides `postMessage`.
   - Commit: `feat: pipeline in a web worker`
-- [ ] **6.2 App shell and state.**
-  - Files: `src/ui/store/projectStore.ts`, `src/ui/App.tsx`, `src/ui/Stepper.tsx`, `test/ui/projectStore.test.ts`.
-  - Builds: Zustand store `{ source, rug, shape: 'shaped' | 'rectangle', count, minDetailMm, palette: PaletteEntry[], result, step }` with actions `setSource`, `setRug`, `setCount`, `setStep`; six steps in the stepper, later steps disabled until data exists.
-  - Tests: `setCount` stores the value; changing the source resets the palette.
+- [X] **6.2 App shell and state.**
+  - Files: `src/ui/store/projectStore.ts`, `src/ui/store/useProject.ts`, `src/ui/App.tsx`, `src/ui/Stepper.tsx`, `src/ui/stepLabels.ts`, `src/ui/app.css`, `test/ui/projectStore.test.ts`, `test/ui/Stepper.test.tsx`.
+  - Builds: Zustand store (vanilla, testable in Node) `{ source, rug, shape: 'shaped' | 'rectangle', count (null = suggested), minDetailMm (default 10), palette: PaletteEntry[], result, step }` with actions `setSource`, `setRug`, `setShape`, `setCount` (1–16), `setMinDetail`, `setResult` (numbered palette "Colour n"; names and locks carry over to colours within deltaE 3), `setStep`, `toggleLock`, `renameColour`; `availableSteps` (Colours needs an image, the rest a result, Outline only for shaped rugs; an unavailable current step falls back to the nearest earlier one). Six steps in the stepper, later steps disabled until data exists. Template demo files removed.
+  - Tests: `setCount` stores the value; changing the source resets the palette; names and locks survive a new result; step availability; the stepper rendered to HTML (React's server renderer, no browser) shows six numbered steps with the right ones disabled.
   - Commit: `feat(ui): app shell and project store`
 - [ ] **6.3 Setup step.**
   - Files: `src/ui/steps/SetupStep.tsx`.

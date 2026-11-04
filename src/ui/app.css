@@ -1,0 +1,83 @@
+/* Color Tuft: plain, calm styles. Colour in the UI never stands alone (always number + name). */
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: #1d1d1f;
+  background: #f6f5f2;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 1rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid #e3e1db;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.stepper ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper button {
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: #efede7;
+}
+
+.stepper button[aria-current='step'] {
+  border-color: #1d1d1f;
+  font-weight: 600;
+}
+
+.stepper button:disabled {
+  color: #a3a19b;
+  cursor: not-allowed;
+}
+
+.stepper-number {
+  display: inline-block;
+  min-width: 1.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-main {
+  max-width: 72rem;
+  padding: 1.5rem;
+}
+
+.placeholder {
+  color: #6b6964;
+}
