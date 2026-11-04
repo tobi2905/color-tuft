@@ -136,7 +136,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
   - Test: `test/core/smoke.test.ts` asserts `1 + 1 === 2`. Check: a throwaway `document.title` line in `src/core` fails `npm run lint`.
   - Walkthrough: why the core stays browser-free (runs in the worker and in Node tests).
   - Commit: `chore: add Vitest, oxlint, Prettier`
-- [ ] **0.3 CI/CD pipeline. (you write, with review)**
+- [X] **0.3 CI/CD pipeline. (you write, with review)**
   - Builds: `.github/workflows/ci.yml`. On push and pull request: `npm ci`, lint, typecheck, test, build. On `main` only: upload `dist/` with `actions/upload-pages-artifact` and deploy with `actions/deploy-pages`. Vite `base: '/color-tuft/'`.
   - Check: the live URL shows the page; a deliberately failing test turns the run red and nothing deploys.
   - Walkthrough: jobs vs steps, `needs`, `permissions` for Pages, caching `node_modules`. A good DevOps exercise.
