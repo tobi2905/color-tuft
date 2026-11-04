@@ -2,15 +2,15 @@ import { Stepper } from './Stepper'
 import { usePipelineSync } from './hooks/usePipelineSync'
 import { STEP_LABELS } from './stepLabels'
 import { ColoursStep } from './steps/ColoursStep'
+import { OutlineStep } from './steps/OutlineStep'
 import { SetupStep } from './steps/SetupStep'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
 
 /** Which task builds each step's screen; shown until it exists. */
-const COMING_IN: Record<Step, string> = {
+const COMING_IN: Partial<Record<Step, string>> = {
   setup: '6.3',
   colours: '6.4',
-  outline: '7.4',
   preview: '12.3',
   yarn: '9.6',
   projector: '8.2',
@@ -46,6 +46,8 @@ export default function App() {
           <SetupStep />
         ) : step === 'colours' ? (
           <ColoursStep />
+        ) : step === 'outline' ? (
+          <OutlineStep />
         ) : (
           <p className="placeholder">This step's screen comes in task {COMING_IN[step]}.</p>
         )}

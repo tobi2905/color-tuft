@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { loadImageFile } from '../../render/loadImage'
 import { ImageCanvas } from '../ImageCanvas'
+import { YarnColourField } from '../YarnColourField'
 import { useProject } from '../store/useProject'
 import { parseCm, rugSizeErrors } from '../validation'
 
@@ -16,6 +17,9 @@ export function SetupStep() {
   const setCount = useProject((s) => s.setCount)
   const suggested = useProject((s) => s.result?.suggestedCount ?? null)
   const setStep = useProject((s) => s.setStep)
+  const palette = useProject((s) => s.palette)
+  const backgroundColour = useProject((s) => s.backgroundColour)
+  const setBackgroundColour = useProject((s) => s.setBackgroundColour)
 
   const [loadError, setLoadError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -147,6 +151,15 @@ export function SetupStep() {
           />
           Rectangle: the rest is filled with a background yarn
         </label>
+        {shape === 'rectangle' && (
+          <YarnColourField
+            label="Background yarn"
+            value={backgroundColour}
+            onChange={setBackgroundColour}
+            palette={palette}
+            automatic="white"
+          />
+        )}
       </section>
 
       <section className="card">

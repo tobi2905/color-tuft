@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { signedArea } from '../../../src/core/geometry'
-import { type CutLoop, cutLine, cutRug } from '../../../src/core/outline/cutLine'
+import { type CutLoop, cutLine, cutRug, cutSize } from '../../../src/core/outline/cutLine'
 import type { Pt } from '../../../src/core/types'
 
 /** A loop as a dense polygon (curves sampled). */
@@ -148,5 +148,24 @@ describe('cutRug', () => {
     expect(mask[70 * 140 + 70]).toBe(1) // the art
     expect(mask[70 * 140 + 15]).toBe(1) // 5 mm outside the art: the border band
     expect(mask[70 * 140 + 5]).toBe(0) // 15 mm outside: beyond the cut
+  })
+})
+
+describe('cutSize', () => {
+  it('measures the finished rug: a 200 mm square with a 20 mm border is about 240 mm wide', () => {
+    const art = artMask(260, 260, [30, 30, 230, 230])
+    const size = cutSize(cutLine(art, 260, 260, 1, { offsetMm: 20, smoothMm: 0 }))!
+    expect(Math.abs(size.widthMm - 240)).toBeLessThan(2)
+    expect(Math.abs(size.heightMm - 240)).toBeLessThan(2)
+  })
+
+  it('covers all pieces of the rug', () => {
+    const art = artMask(300, 120, [10, 10, 110, 110], [190, 10, 290, 110])
+    const size = cutSize(cutLine(art, 300, 120, 1, { offsetMm: 5, smoothMm: 0 }))!
+    expect(Math.abs(size.widthMm - 290)).toBeLessThan(2)
+  })
+
+  it('is null without a cut line', () => {
+    expect(cutSize([])).toBeNull()
   })
 })

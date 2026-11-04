@@ -1,21 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { deltaE } from '../../core/color/distance'
 import { sampleColour } from '../../core/color/sample'
-import { labelAt } from '../../core/labelMap'
-import {
-  type ImageGrid,
-  type LabelMap,
-  NO_LABEL,
-  type PaletteEntry,
-  type RugSize,
-} from '../../core/types'
-import { drawPattern } from '../../render/patternCanvas'
+import { type ImageGrid, type LabelMap, type PaletteEntry, type RugSize } from '../../core/types'
 import { describeAddedColour } from '../colourWords'
 import { useProject } from '../store/useProject'
+import { labelOrNull, mmAt, viewSize } from '../viewGeometry'
+import { type HoverProps, PatternView } from '../views'
 import { parseCm } from '../validation'
-
-/** The two views are drawn with their long side this many CSS pixels (times the screen density). */
-const VIEW_PX = 640
 
 /** Step 2: the reduced result beside the original, the numbered palette, and the settings. */
 export function ColoursStep() {
@@ -150,57 +141,6 @@ export function ColoursStep() {
   )
 }
 
-/** Canvas size for a rug: long side VIEW_PX CSS pixels, sharp on high-density screens. */
-function viewSize(rug: RugSize) {
-  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1
-  const long = Math.max(rug.widthMm, rug.heightMm)
-  const scale = (VIEW_PX * dpr) / long // canvas pixels per mm
-  return { width: Math.round(rug.widthMm * scale), height: Math.round(rug.heightMm * scale), scale }
-}
-
-/** Mouse position on a canvas, in rug mm. */
-function mmAt(e: React.MouseEvent<HTMLCanvasElement>, rug: RugSize) {
-  const r = e.currentTarget.getBoundingClientRect()
-  return {
-    x: ((e.clientX - r.left) / r.width) * rug.widthMm,
-    y: ((e.clientY - r.top) / r.height) * rug.heightMm,
-  }
-}
-
-type HoverProps = { highlight: number | null; onHover(label: number | null): void }
-
-function PatternView({ rug, highlight, onHover }: { rug: RugSize } & HoverProps) {
-  const pattern = useProject((s) => s.result!.pattern)
-  const map = useProject((s) => s.result!.map)
-  const palette = useProject((s) => s.palette)
-  const ref = useRef<HTMLCanvasElement>(null)
-  const size = viewSize(rug)
-
-  useEffect(() => {
-    const ctx = ref.current?.getContext('2d')
-    if (ctx)
-      drawPattern(ctx, pattern, palette, {
-        scale: size.scale,
-        numbers: true,
-        outlines: true,
-        highlight,
-      })
-  }, [pattern, palette, highlight, size.scale])
-
-  return (
-    <canvas
-      ref={ref}
-      className="view"
-      width={size.width}
-      height={size.height}
-      role="img"
-      aria-label="The pattern, each area numbered with its colour"
-      onMouseMove={(e) => onHover(labelOrNull(map, mmAt(e, rug)))}
-      onMouseLeave={() => onHover(null)}
-    />
-  )
-}
-
 /**
  * The original, placed the way the pipeline placed it: fitted and centred in the art area,
  * which sits at `origin` inside the whole map (`canvas`), with the other colours veiled.
@@ -258,11 +198,6 @@ function OriginalView({
       onClick={(e) => picking && onPick(mmAt(e, rug))}
     />
   )
-}
-
-function labelOrNull(map: LabelMap, pt: { x: number; y: number }) {
-  const label = labelAt(map, pt)
-  return label === NO_LABEL ? null : label
 }
 
 function toCanvas(grid: ImageGrid): HTMLCanvasElement {

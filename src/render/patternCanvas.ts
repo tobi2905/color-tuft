@@ -1,5 +1,6 @@
 import { polygonArea } from '../core/geometry'
 import { poleOfInaccessibility } from '../core/labelPoint'
+import type { CutLoop } from '../core/outline/cutLine'
 import { ringToPolygon } from '../core/trace/pattern'
 import type { PaletteEntry, Pt, Region, RingRef, VectorPattern } from '../core/types'
 
@@ -144,4 +145,30 @@ function distanceToEdges(p: Pt, polygons: Pt[][]): number {
     }
   }
   return best
+}
+
+/**
+ * The cut line of a shaped rug, dashed: a white line under a dark dashed one, so it shows on
+ * light and dark rugs alike. Same frame and scale as drawPattern.
+ */
+export function drawCut(ctx: CanvasRenderingContext2D, loops: CutLoop[], scale: number): void {
+  const path = new Path2D()
+  for (const loop of loops) {
+    path.moveTo(loop.start.x, loop.start.y)
+    for (const s of loop.segs) {
+      if (s.kind === 'line') path.lineTo(s.to.x, s.to.y)
+      else path.bezierCurveTo(s.c1.x, s.c1.y, s.c2.x, s.c2.y, s.to.x, s.to.y)
+    }
+    path.closePath()
+  }
+  ctx.save()
+  ctx.scale(scale, scale)
+  ctx.lineWidth = 3 / scale
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+  ctx.stroke(path)
+  ctx.lineWidth = 1.5 / scale
+  ctx.setLineDash([6 / scale, 4 / scale])
+  ctx.strokeStyle = '#1d1d1f'
+  ctx.stroke(path)
+  ctx.restore()
 }

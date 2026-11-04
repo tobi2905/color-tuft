@@ -107,3 +107,48 @@ function within(mask: Uint8Array, w: number, h: number, radius: number): Uint8Ar
   for (let i = 0; i < n; i++) out[i] = distance[i] <= radius ? 1 : 0
   return out
 }
+
+/**
+ * The finished rug's size: the bounding box of all cut loops (mm), or null without any.
+ * Curves are sampled, so their bulges count.
+ */
+export function cutSize(loops: CutLoop[]): { widthMm: number; heightMm: number } | null {
+  if (loops.length === 0) return null
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  const add = (p: Pt) => {
+    minX = Math.min(minX, p.x)
+    minY = Math.min(minY, p.y)
+    maxX = Math.max(maxX, p.x)
+    maxY = Math.max(maxY, p.y)
+  }
+  for (const loop of loops) {
+    add(loop.start)
+    let from = loop.start
+    for (const s of loop.segs) {
+      if (s.kind === 'cubic') {
+        for (let i = 1; i < 16; i++) {
+          const t = i / 16
+          const u = 1 - t
+          add({
+            x:
+              u * u * u * from.x +
+              3 * u * u * t * s.c1.x +
+              3 * u * t * t * s.c2.x +
+              t * t * t * s.to.x,
+            y:
+              u * u * u * from.y +
+              3 * u * u * t * s.c1.y +
+              3 * u * t * t * s.c2.y +
+              t * t * t * s.to.y,
+          })
+        }
+      }
+      add(s.to)
+      from = s.to
+    }
+  }
+  return { widthMm: maxX - minX, heightMm: maxY - minY }
+}
