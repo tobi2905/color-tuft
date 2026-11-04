@@ -2,7 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { srgbToOklab } from '../../../src/core/color/convert'
 import { deltaE } from '../../../src/core/color/distance'
 import { samplePixels } from '../../../src/core/quantize/sample'
-import { FIXTURE, circle, triforce, withSoftAlpha } from '../../fixtures/images'
+import { fitToRug } from '../../../src/core/image/fitToRug'
+import type { OKLab, RGB } from '../../../src/core/types'
+import {
+  FIXTURE,
+  circle,
+  gradientCircle,
+  thinOutline,
+  triforce,
+  withSoftAlpha,
+} from '../../fixtures/images'
+
+/** Share of samples further than deltaE 3 from every one of the given colours. */
+function strayShare(samples: OKLab[], colours: RGB[]): number {
+  const labs = colours.map(srgbToOklab)
+  const stray = samples.filter((s) => labs.every((c) => deltaE(s, c) > 3)).length
+  return stray / samples.length
+}
 
 describe('samplePixels', () => {
   it('returns maxSamples samples when the image has more pixels', () => {
@@ -45,5 +61,36 @@ describe('samplePixels', () => {
     const img = triforce(200)
     expect(samplePixels(img, 300, 7)).toEqual(samplePixels(img, 300, 7))
     expect(samplePixels(img, 300, 7)).not.toEqual(samplePixels(img, 300, 8))
+  })
+
+  it('skips the blended pixels of smooth (anti-aliased) edges', () => {
+    // Shrinking blends every edge pixel; those in-between colours are not art colours.
+    const smooth = fitToRug(triforce(800), { widthMm: 100, heightMm: 100 }, 1)
+    const samples = samplePixels(smooth, Infinity, 1)
+    expect(strayShare(samples, [FIXTURE.gold, FIXTURE.dark])).toBeLessThan(0.005)
+  })
+
+  it('skips blended pixels when a small image is enlarged', () => {
+    const big = fitToRug(triforce(300), { widthMm: 900, heightMm: 900 }, 1)
+    const samples = samplePixels(big, 50_000, 1)
+    expect(strayShare(samples, [FIXTURE.gold, FIXTURE.dark])).toBeLessThan(0.005)
+  })
+
+  it('skips the grey rims of a smooth thin outline, but keeps the line itself', () => {
+    const smooth = fitToRug(thinOutline(800, 12), { widthMm: 200, heightMm: 200 }, 1)
+    const samples = samplePixels(smooth, Infinity, 1)
+    expect(strayShare(samples, [FIXTURE.black, FIXTURE.white, FIXTURE.red])).toBeLessThan(0.005)
+    const black = srgbToOklab(FIXTURE.black)
+    expect(samples.filter((s) => deltaE(s, black) < 3).length).toBeGreaterThan(500)
+  })
+
+  it('keeps a sharp 1 px line (its neighbours on both sides are the same colour)', () => {
+    const samples = samplePixels(thinOutline(200, 1), Infinity, 1)
+    const black = srgbToOklab(FIXTURE.black)
+    expect(samples.filter((s) => deltaE(s, black) < 1).length).toBeGreaterThan(400)
+  })
+
+  it('keeps every pixel of a smooth gradient (neighbours differ only a little)', () => {
+    expect(samplePixels(gradientCircle(300, 256), Infinity, 1)).toHaveLength(300 * 300)
   })
 })

@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { srgbToOklab } from '../../../src/core/color/convert'
 import { deltaE } from '../../../src/core/color/distance'
 import { denoise } from '../../../src/core/image/denoise'
+import { fitToRug } from '../../../src/core/image/fitToRug'
 import { findPeaks } from '../../../src/core/quantize/peaks'
 import { samplePixels } from '../../../src/core/quantize/sample'
 import type { ImageGrid } from '../../../src/core/types'
 import {
   FIXTURE,
+  gradientCircle,
   sixColours,
   smallEye,
   triforce,
@@ -58,6 +60,28 @@ describe('findPeaks', () => {
   it('finds exactly the 2 real colours in a noisy JPEG after denoising', () => {
     const cleaned = denoise(withJpegNoise(triforce(200), 12, 1), { radiusPx: 2, rangeDeltaE: 10 })
     expect(significant(cleaned)).toHaveLength(2)
+  })
+
+  it('marks both Triforce colours as distinct', () => {
+    expect(peaksOf(triforce(200)).every((p) => p.distinct)).toBe(true)
+  })
+
+  it('marks a gradient as one distinct colour, however many peaks it has', () => {
+    // White background + one gradient island = 2 distinct, even though the gradient has
+    // several peaks of its own.
+    const peaks = peaksOf(gradientCircle(300, 64))
+    expect(peaks.length).toBeGreaterThan(3)
+    expect(peaks.filter((p) => p.distinct)).toHaveLength(2)
+  })
+
+  it('marks noise specks as not distinct', () => {
+    const cleaned = denoise(withJpegNoise(triforce(200), 12, 1), { radiusPx: 2, rangeDeltaE: 10 })
+    expect(peaksOf(cleaned).filter((p) => p.distinct)).toHaveLength(2)
+  })
+
+  it('does not let blended anti-aliased edge pixels join the two Triforce colours', () => {
+    const smooth = fitToRug(triforce(800), { widthMm: 200, heightMm: 200 }, 1)
+    expect(peaksOf(smooth).filter((p) => p.distinct && p.share >= 0.002)).toHaveLength(2)
   })
 
   it('returns nothing for no samples', () => {

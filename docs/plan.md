@@ -192,13 +192,13 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 - [X] **3.1 Sample and find colour peaks.**
   - Files: `src/core/quantize/sample.ts`, `src/core/quantize/peaks.ts`, tests beside them in `test/core/quantize/`.
-  - Builds: `samplePixels(img: ImageGrid, maxSamples: number, seed: number): OKLab[]` (skips alpha < 128); `findPeaks(samples: OKLab[], binSize = 0.02): { lab: OKLab; share: number }[]` from a 3D histogram, local maxima sorted by share.
+  - Builds: `samplePixels(img: ImageGrid, maxSamples: number, seed: number): OKLab[]` (skips alpha < 128); `findPeaks(samples: OKLab[], binSize = 0.02): { lab: OKLab; share: number; distinct: boolean }[]` from a 3D histogram, local maxima sorted by share. `distinct` (added in 3.2): the largest peak of its colour island (touching well-filled histogram cubes) and deltaE ≥ 10 from every larger peak, so a gradient counts once and noise specks not at all. `samplePixels` also skips edge blends (added in 3.2): pixels whose colour is a mix of two clearly different opposite neighbours, as along anti-aliased or resized edges; mix maths in `src/core/color/mix.ts`. `seededRandom` moved to `src/core/random.ts`.
   - Tests: `triforce` gives 2 peaks; shares sum to 1 (±1e-9); a `withSoftAlpha` image adds no halo peak.
   - Commit: `feat(core): colour peaks`
-- [ ] **3.2 Find the palette.**
+- [X] **3.2 Find the palette.**
   - Files: `src/core/quantize/palette.ts`, `test/core/quantize/palette.test.ts`.
-  - Builds: `findPalette(samples: OKLab[], opts: { count: number; locked: OKLab[]; seed: number }): OKLab[]`. Start from the peaks; any peak with share ≥ 0.2% and deltaE ≥ 10 from all chosen colours is kept before large areas are split; refine with k-means; locked colours never move.
-  - Tests: `triforce` with count 7 returns exactly 2 colours; `smallEye` with 0.5% eye and count 3 keeps the eye; a locked colour comes back identical; `gradientCircle` with count 4 gives 4 colours ordered by lightness; same seed, same result.
+  - Builds: `findPalette(samples: OKLab[], opts: { count: number; locked: OKLab[]; seed: number }): OKLab[]`, lightest first. Locked colours first; then every `distinct` peak with share ≥ 0.2% and deltaE ≥ 10 from all chosen colours, before large areas are split (k-means++ style, stopping when nothing is ≥ deltaE 5 away); refine with k-means; locked colours never move.
+  - Tests: `triforce` with count 7 returns exactly 2 colours, also with blended edges (shrunk or enlarged); a smooth thin outline gives its 3 colours, not its grey rims; `smallEye` with 0.5% eye and count 3 keeps the eye, also next to a gradient; a locked colour comes back identical; `gradientCircle` with count 4 gives 4 colours ordered by lightness; same seed, same result.
   - Walkthrough: k-means step by step, and why plain k-means swallows small details.
   - Commit: `feat(core): palette with locks and small-colour protection`
 - [ ] **3.3 Suggest a colour count. (you write)**
