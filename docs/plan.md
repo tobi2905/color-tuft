@@ -246,7 +246,7 @@ The spec doesn't spell these out, but they're the inputs most likely to break th
 
 Approach: borders are first traced along the cracks between pixels (a staircase), then fitted with straight lines and Bézier curves at a tolerance larger than one pixel. The fitting removes the staircase while corner detection keeps real corners, the same idea Potrace uses.
 
-- [ ] **5.1 Trace shared borders.**
+- [X] **5.1 Trace shared borders.**
   - Files: `src/core/trace/borders.ts`, `test/core/trace/borders.test.ts`.
   - Builds: `traceBorders(map: LabelMap): { nodes: Pt[]; edges: { left: number; right: number; points: Pt[] }[] }`. Walks pixel cracks between different labels; a node is any corner where 3 or more labels meet; each border between two labels is one edge, stored once; points in mm.
   - Tests: a map split in half gives one straight edge; `triforce` edges close into rings around every region; no two edges share the same left/right pair and points.
