@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Yarn } from '../../core/types'
+import { PhotoSampler } from './PhotoSampler'
 import {
   type YarnDraft,
   draftFromYarn,
@@ -17,15 +18,19 @@ type Props = {
   onCancel(): void
 }
 
-/** Add or edit one yarn: colour (picker or code), name, number, grams, cone weight, shop. */
+/**
+ * Add or edit one yarn: colour (picker, code or from a photo), name, number, grams, cone weight,
+ * shop.
+ */
 export function YarnForm({ list, yarn, onSave, onCancel }: Props) {
   const [draft, setDraft] = useState<YarnDraft>(() => (yarn ? draftFromYarn(yarn) : emptyDraft()))
   // Errors show once the user has tried to save, not while they are still typing.
   const [tried, setTried] = useState(false)
+  const [fromPhoto, setFromPhoto] = useState(false)
   const errors = yarnDraftErrors(draft)
   const valid = Object.values(errors).every((e) => e === null)
   const shown = (key: keyof typeof errors) => (tried ? errors[key] : null)
-  const edit = (change: Partial<YarnDraft>) => setDraft({ ...draft, ...change })
+  const edit = (change: Partial<YarnDraft>) => setDraft((d) => ({ ...d, ...change }))
 
   function save() {
     setTried(true)
@@ -71,7 +76,15 @@ export function YarnForm({ list, yarn, onSave, onCancel }: Props) {
           />
         </label>
         {text('hex', 'Colour code', shown('hex'))}
+        {!fromPhoto && (
+          <button type="button" className="photo-button" onClick={() => setFromPhoto(true)}>
+            From a photo…
+          </button>
+        )}
       </div>
+      {fromPhoto && (
+        <PhotoSampler onSample={(hex) => edit({ hex })} onClose={() => setFromPhoto(false)} />
+      )}
       <div className="field-row">
         {text('name', 'Name', shown('name'))}
         {text('number', 'Number (optional)')}

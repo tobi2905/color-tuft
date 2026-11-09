@@ -82,9 +82,10 @@ describe('project store', () => {
 
   it('only allows steps that have their data', () => {
     const store = createProjectStore()
-    expect(availableSteps(store.getState())).toEqual(['setup'])
+    // The yarn lists don't need an image.
+    expect(availableSteps(store.getState())).toEqual(['setup', 'yarn'])
     store.getState().setSource(source())
-    expect(availableSteps(store.getState())).toEqual(['setup', 'colours'])
+    expect(availableSteps(store.getState())).toEqual(['setup', 'colours', 'yarn'])
     store.getState().setResult(resultWith([gold, dark]))
     expect(availableSteps(store.getState())).toEqual([
       'setup',
@@ -120,6 +121,14 @@ describe('project store', () => {
     store.getState().setStep('preview')
     store.getState().setSource(source('other.png'))
     expect(store.getState().step).toBe('colours') // the new image is there; its colours follow
+  })
+
+  it('stays on the yarn step when a new image clears the result', () => {
+    const store = createProjectStore()
+    store.getState().setStep('yarn')
+    expect(store.getState().step).toBe('yarn')
+    store.getState().setSource(source())
+    expect(store.getState().step).toBe('yarn')
   })
 
   it('leaves the outline step when the rug becomes rectangular', () => {

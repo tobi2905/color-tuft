@@ -676,3 +676,23 @@ button.link {
 .colour-field {
   flex: 0 0 auto;
 }
+
+.photo-button {
+  align-self: flex-start;
+  margin-top: 1.6rem;
+}
+
+.photo-sampler {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e3e1db;
+  border-radius: 0.5rem;
+}
+
+.photo-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 24rem;
+  margin-top: 0.75rem;
+  cursor: crosshair;
+}

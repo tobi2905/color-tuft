@@ -366,9 +366,9 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 **Done when:** you can enter your yarns, run a pattern on owned yarns only, and get grams per colour, a shopping list and a waste value that learns from finished rugs. Yarns stay in memory until Phase 11 adds saving.
 
-- [ ] **9.1 Yarn lists.**
+- [X] **9.1 Yarn lists.**
   - Files: `src/ui/store/yarnStore.ts`, `src/ui/yarn/YarnList.tsx`, `src/ui/yarn/YarnForm.tsx`, `test/ui/yarnStore.test.ts`.
-  - Builds: store with `addYarn`, `updateYarn`, `removeYarn`, `moveToStock(id)`; form with colour picker, name, number, hex code, grams on hand, cone weight, shop; tabs Stock and Catalogue.
+  - Builds: store with `addYarn`, `updateYarn`, `removeYarn`, `moveToStock(id)`; form with colour picker, name, number, hex code, grams on hand, cone weight, shop; tabs Stock and Catalogue. The lists sit on the Yarn step, which is reachable without an image.
   - Tests: adding then removing leaves the list unchanged; `moveToStock` changes only `list`.
   - Commit: `feat(ui): yarn stock and catalogue`
 - [ ] **9.2 Sample colour from a photo.**
@@ -393,7 +393,7 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Commit: `feat(core): yarn amounts and waste learning`
 - [ ] **9.6 Yarn step.**
   - Files: `src/ui/steps/YarnStep.tsx`, `src/ui/yarn/CalibrationDialog.tsx`, `src/ui/yarn/FinishedRugDialog.tsx`.
-  - Builds: calibration list (name, square size, grams before and after, giving g/m²); per-colour table (number, name, area in cm², grams, on hand, to buy); Find matching colours dialog with ratings in words; Finished rug dialog for leftover weights, which updates the waste.
+  - Builds: calibration list (name, square size, grams before and after, giving g/m²); per-colour table (number, name, area in cm², grams, on hand, to buy), shown once there is a pattern (without one, the step shows only the yarn lists); Find matching colours dialog with ratings in words; Finished rug dialog for leftover weights, which updates the waste.
   - Check: the Triforce shows two rows with grams and a shopping list.
   - Commit: `feat(ui): yarn step`
 

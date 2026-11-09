@@ -270,12 +270,12 @@ export function createProjectStore() {
 }
 
 /**
- * Steps that have the data they need: Colours needs an image; the rest need a result;
- * Outline only exists for shaped rugs.
+ * Steps that have the data they need: Colours needs an image; Yarn is always open (the yarn
+ * lists don't need one); the rest need a result; Outline only exists for shaped rugs.
  */
 export function availableSteps(state: Pick<ProjectState, 'source' | 'result' | 'shape'>): Step[] {
   return STEPS.filter((step) => {
-    if (step === 'setup') return true
+    if (step === 'setup' || step === 'yarn') return true
     if (step === 'colours') return state.source !== null
     if (step === 'outline') return state.result !== null && state.shape === 'shaped'
     return state.result !== null
