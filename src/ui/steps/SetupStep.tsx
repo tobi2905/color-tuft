@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { loadImageFile } from '../../render/loadImage'
 import { ImageCanvas } from '../ImageCanvas'
 import { YarnColourField } from '../YarnColourField'
+import { YarnsOnlyChoice } from '../yarn/YarnsOnlyChoice'
 import { useProject } from '../store/useProject'
 import { parseCm, rugSizeErrors } from '../validation'
 
@@ -164,22 +165,24 @@ export function SetupStep() {
 
       <section className="card">
         <h3>Colours</h3>
-        <label className="field">
-          Number of colours
-          <input
-            type="number"
-            min={1}
-            max={16}
-            value={count ?? ''}
-            placeholder={suggested ? String(suggested) : 'auto'}
-            onChange={(e) => setCount(e.target.value === '' ? null : Number(e.target.value))}
-          />
-        </label>
-        <p className="hint">
-          {suggested
-            ? `This art has ${suggested} colours. Leave empty to use that.`
-            : 'Leave empty to use the number the app suggests.'}
-        </p>
+        <YarnsOnlyChoice>
+          <label className="field">
+            Number of colours
+            <input
+              type="number"
+              min={1}
+              max={16}
+              value={count ?? ''}
+              placeholder={suggested ? String(suggested) : 'auto'}
+              onChange={(e) => setCount(e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </label>
+          <p className="hint">
+            {suggested
+              ? `This art has ${suggested} colours. Leave empty to use that.`
+              : 'Leave empty to use the number the app suggests.'}
+          </p>
+        </YarnsOnlyChoice>
       </section>
 
       <div className="actions">

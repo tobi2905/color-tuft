@@ -44,6 +44,7 @@ export function usePipelineSync(): { running: boolean; error: string | null } {
       s.backgroundEdits,
       s.borderColour,
       s.backgroundColour,
+      s.yarnsOnly?.yarns.map((y) => y.lab),
     ]),
   )
   const setResult = useProject((s) => s.setResult)

@@ -27,6 +27,22 @@ describe('pipelineInputFrom', () => {
     expect(input.locked).toEqual([])
   })
 
+  it('with "my yarns only", passes exactly the chosen yarn colours, ignoring other locks', () => {
+    const store = createProjectStore()
+    store.getState().setSource({ grid, name: 'a.png', downscaled: false })
+    store.getState().setResult({ palette: [gold, dark], suggestedCount: 2 } as PipelineResult)
+    store.getState().toggleLock(2)
+    store.getState().setCount(6)
+    const yarnGold = srgbToOklab({ r: 250, g: 210, b: 10 })
+    store.getState().setYarnsOnly({
+      from: [gold, dark],
+      yarns: [{ yarnId: 'y1', name: 'Sun', lab: yarnGold }],
+    })
+    const input = pipelineInputFrom(store.getState())!
+    expect(input.locked).toEqual([yarnGold])
+    expect(input.count).toBe(1)
+  })
+
   it('passes null as the count when the suggested count is wanted', () => {
     const store = createProjectStore()
     store.getState().setSource({ grid, name: 'a.png', downscaled: false })

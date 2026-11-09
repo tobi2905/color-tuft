@@ -27,8 +27,9 @@ export function pipelineInputFrom(state: ProjectState): PipelineInput | null {
   return {
     image: state.source.grid,
     rug: state.rug,
-    count: state.count,
-    locked: lockedColours(state),
+    // My yarns only: exactly the chosen yarns, nothing else.
+    count: state.yarnsOnly ? state.yarnsOnly.yarns.length : state.count,
+    locked: state.yarnsOnly ? state.yarnsOnly.yarns.map((y) => y.lab) : lockedColours(state),
     minDetailMm: state.minDetailMm,
     outlines: state.outlines.enabled
       ? {

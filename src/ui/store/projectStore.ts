@@ -16,6 +16,15 @@ export type Source = { grid: ImageGrid; name: string; downscaled: boolean }
 /** A colour merged into another, with what the merged colour looked like (for the undo list). */
 export type MergeRecord = { from: OKLab; into: OKLab; fromName: string; fromHex: string }
 
+/**
+ * "My yarns only": the yarns that replace the palette (with their colours), and the palette
+ * they were chosen for (to show how close each art colour's yarn is).
+ */
+export type YarnsOnly = {
+  from: OKLab[]
+  yarns: { yarnId: string; name: string; lab: OKLab }[]
+}
+
 /** Separation outlines: off by default for every image. colour null = the darkest palette colour. */
 export type OutlineSettings = {
   enabled: boolean
@@ -48,6 +57,8 @@ export type ProjectState = {
   smoothMm: number
   /** Shaped rugs: clicks turning areas into background or back into art. */
   backgroundEdits: BackgroundEdit[]
+  /** Use only these owned yarns as the palette; null = find the colours freely. */
+  yarnsOnly: YarnsOnly | null
   /** Border yarn (shaped) and background yarn (rectangle); null = automatic. */
   borderColour: OKLab | null
   backgroundColour: OKLab | null
@@ -86,6 +97,7 @@ export type ProjectActions = {
   addBackgroundEdit(edit: BackgroundEdit): void
   undoBackgroundEdit(index: number): void
   setBorderColour(colour: OKLab | null): void
+  setYarnsOnly(yarnsOnly: YarnsOnly | null): void
   setBackgroundColour(colour: OKLab | null): void
   initProjectorScale(pxPerMm: number): void
   applyMeasurement(measuredMm: number): void
@@ -121,6 +133,7 @@ const initialState: ProjectState = {
   offsetMm: 20,
   smoothMm: 10,
   backgroundEdits: [],
+  yarnsOnly: null,
   borderColour: null,
   backgroundColour: null,
   projector: {
@@ -165,6 +178,7 @@ export function createProjectStore() {
           merges: [],
           picked: [],
           backgroundEdits: [],
+          yarnsOnly: null,
           outlines: { ...get().outlines, enabled: false, colour: null },
         })
         keepStepValid()
@@ -178,9 +192,13 @@ export function createProjectStore() {
         set({ count: count === null ? null : Math.min(16, Math.max(1, Math.round(count))) }),
       setMinDetail: (mm) => set({ minDetailMm: mm }),
       setResult(result) {
-        const palette = paletteFrom(result.palette, get().palette, result).map((p) =>
-          isPicked(get().picked, p.lab) ? { ...p, locked: true } : p,
-        )
+        const yarns = get().yarnsOnly?.yarns ?? []
+        const palette = paletteFrom(result.palette, get().palette, result).map((p) => {
+          // "My yarns only": a colour that is one of the chosen yarns is named after it.
+          const yarn = yarns.find((y) => deltaE(y.lab, p.lab) < SAME_COLOUR_DELTA_E)
+          if (yarn) return { ...p, name: yarn.name, yarnId: yarn.yarnId }
+          return isPicked(get().picked, p.lab) ? { ...p, locked: true } : p
+        })
         set({ result, palette })
         keepStepValid()
       },
@@ -219,6 +237,7 @@ export function createProjectStore() {
       undoBackgroundEdit: (index) =>
         set({ backgroundEdits: get().backgroundEdits.filter((_, i) => i !== index) }),
       setBorderColour: (borderColour) => set({ borderColour }),
+      setYarnsOnly: (yarnsOnly) => set({ yarnsOnly }),
       initProjectorScale(pxPerMm) {
         if (get().projector.pxPerMm === null) set({ projector: { ...get().projector, pxPerMm } })
       },

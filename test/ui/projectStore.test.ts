@@ -334,4 +334,28 @@ describe('project store', () => {
     store.getState().setProjectorMode('pattern')
     expect(store.getState().projector.mode).toBe('pattern')
   })
+
+  it('names palette colours after the chosen yarns in "my yarns only" mode', () => {
+    const store = createProjectStore()
+    store.getState().setSource(source())
+    store.getState().setResult(resultWith([gold, dark]))
+    store.getState().setYarnsOnly({
+      from: [gold, dark],
+      yarns: [{ yarnId: 'y1', name: 'Sun', lab: gold }],
+    })
+    store.getState().setResult(resultWith([gold]))
+    expect(store.getState().palette[0]).toMatchObject({ name: 'Sun', yarnId: 'y1' })
+  })
+
+  it('turns "my yarns only" off again, and for a new image', () => {
+    const store = createProjectStore()
+    store.getState().setSource(source())
+    const chosen = { from: [gold], yarns: [{ yarnId: 'y1', name: 'Sun', lab: gold }] }
+    store.getState().setYarnsOnly(chosen)
+    store.getState().setYarnsOnly(null)
+    expect(store.getState().yarnsOnly).toBeNull()
+    store.getState().setYarnsOnly(chosen)
+    store.getState().setSource(source('other.png'))
+    expect(store.getState().yarnsOnly).toBeNull()
+  })
 })

@@ -845,3 +845,17 @@ button.link {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.yarns-only .notice {
+  margin: 0.5rem 0;
+}
+
+.yarns-only button {
+  margin-top: 0.25rem;
+}
+
+.swatch.inline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
