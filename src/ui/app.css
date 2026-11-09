@@ -587,3 +587,92 @@ button.link {
 .open-window {
   margin-bottom: 0.25rem;
 }
+
+.yarns {
+  max-width: 48rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #e3e1db;
+}
+
+.tabs button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  color: #6b6964;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: #1d1d1f;
+  color: #1d1d1f;
+  font-weight: 600;
+}
+
+.yarn-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.yarn-row {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(8rem, 1fr) 4.5rem minmax(0, 1.2fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.4rem;
+  border-bottom: 1px solid #efede7;
+}
+
+.yarn-name {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.yarn-row code {
+  font-size: 0.8rem;
+  color: #6b6964;
+}
+
+.yarn-row .hint {
+  margin: 0;
+}
+
+.yarn-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.yarn-actions button,
+.form-actions button {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #c9c6be;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.form-actions button[type='submit'] {
+  background: #1d1d1f;
+  border-color: #1d1d1f;
+  color: #fff;
+}
+
+.yarn-form {
+  margin: 0.5rem 0 1rem;
+}
+
+.colour-field {
+  flex: 0 0 auto;
+}

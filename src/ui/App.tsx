@@ -6,6 +6,7 @@ import { ColoursStep } from './steps/ColoursStep'
 import { OutlineStep } from './steps/OutlineStep'
 import { ProjectorStep } from './projector/ProjectorStep'
 import { SetupStep } from './steps/SetupStep'
+import { YarnList } from './yarn/YarnList'
 import { type Step, availableSteps } from './store/projectStore'
 import { useProject } from './store/useProject'
 
@@ -14,7 +15,6 @@ const COMING_IN: Partial<Record<Step, string>> = {
   setup: '6.3',
   colours: '6.4',
   preview: '12.3',
-  yarn: '9.6',
 }
 
 export default function App() {
@@ -50,6 +50,9 @@ export default function App() {
           <ColoursStep />
         ) : step === 'outline' ? (
           <OutlineStep />
+        ) : step === 'yarn' ? (
+          // Amounts and the shopping list join the lists in task 9.6.
+          <YarnList />
         ) : step === 'projector' ? (
           <ProjectorStep />
         ) : (

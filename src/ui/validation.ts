@@ -3,6 +3,11 @@ export const MAX_RUG_CM = 500
 
 /** A number of cm typed by the user: "120", "120.5" or "120,5" (decimal comma). Else null. */
 export function parseCm(text: string): number | null {
+  return parseDecimal(text)
+}
+
+/** A number typed by the user, with a decimal point or comma. Else null. */
+export function parseDecimal(text: string): number | null {
   const t = text.trim().replace(',', '.')
   if (!/^-?\d+(\.\d+)?$/.test(t)) return null
   return Number(t)
