@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Yarn } from '../../core/types'
 import { BlobImage } from '../BlobImage'
 import { useYarns } from '../store/yarnStore'
+import { SwatchImport } from './SwatchImport'
 import { YarnForm } from './YarnForm'
 
 const TABS: { list: Yarn['list']; label: string; empty: string }[] = [
@@ -21,14 +22,23 @@ export function YarnList() {
   const removeYarn = useYarns((s) => s.removeYarn)
   const moveToStock = useYarns((s) => s.moveToStock)
   const [list, setList] = useState<Yarn['list']>('stock')
-  // 'new' = the add form is open; an id = that yarn is being edited.
+  // 'new' = the add form is open; 'import' = the colour chart import; an id = that yarn is
+  // being edited.
   const [editing, setEditing] = useState<string | null>(null)
+  // What the last import added, shown until something else happens.
+  const [note, setNote] = useState<string | null>(null)
   const tab = TABS.find((t) => t.list === list)!
   const shown = yarns.filter((y) => y.list === list)
 
   function switchTo(next: Yarn['list']) {
     setList(next)
     setEditing(null)
+    setNote(null)
+  }
+
+  function open(what: string) {
+    setEditing(what)
+    setNote(null)
   }
 
   return (
@@ -48,7 +58,12 @@ export function YarnList() {
       </div>
 
       <div role="tabpanel" aria-label={tab.label}>
-        {shown.length === 0 && editing !== 'new' && <p className="hint">{tab.empty}</p>}
+        {note && (
+          <p className="notice" role="status">
+            {note}
+          </p>
+        )}
+        {shown.length === 0 && editing === null && <p className="hint">{tab.empty}</p>}
         <ul className="yarn-list">
           {shown.map((y) =>
             editing === y.id ? (
@@ -74,7 +89,7 @@ export function YarnList() {
               <YarnRow
                 key={y.id}
                 yarn={y}
-                onEdit={() => setEditing(y.id)}
+                onEdit={() => open(y.id)}
                 onRemove={() => removeYarn(y.id)}
                 onMoveToStock={list === 'catalogue' ? () => moveToStock(y.id) : undefined}
               />
@@ -90,11 +105,24 @@ export function YarnList() {
             }}
             onCancel={() => setEditing(null)}
           />
+        ) : editing === 'import' ? (
+          <SwatchImport
+            onImported={(count, shop) => {
+              setEditing(null)
+              setNote(`Added ${count} ${count === 1 ? 'yarn' : 'yarns'} from ${shop}.`)
+            }}
+            onCancel={() => setEditing(null)}
+          />
         ) : (
           <div className="form-actions">
-            <button type="button" onClick={() => setEditing('new')}>
+            <button type="button" onClick={() => open('new')}>
               Add a yarn
             </button>
+            {list === 'catalogue' && (
+              <button type="button" onClick={() => open('import')}>
+                Import from a colour chart…
+              </button>
+            )}
           </div>
         )}
       </div>

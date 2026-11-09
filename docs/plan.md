@@ -377,8 +377,8 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Tests: a noisy patch with 10% white highlight pixels returns within deltaE 2 of the true colour.
   - Commit: `feat: yarn colour from photo`
 - [ ] **9.3 Swatch screenshot import.**
-  - Files: `src/ui/yarn/SwatchImport.tsx`.
-  - Builds: upload a shop's colour chart, click swatches one after another (each uses `sampleColour`), type a name and number for each, save all to Catalogue with the shop name.
+  - Files: `src/ui/yarn/SwatchImport.tsx`, `src/ui/yarn/swatchRows.ts` (checks and conversion), `src/ui/yarn/ClickableImage.tsx` (shared with the photo sampler), `test/ui/swatchRows.test.ts`.
+  - Builds: upload a shop's colour chart, click swatches one after another (each uses `sampleColour`), type a name and number for each, save all to Catalogue with the shop name. Each swatch gets a suggested name (`colourName` in `src/core/color/name.ts`: "Red", "Dark blue", "Beige"…), and "Number them" fills empty numbers with the lowest ones not used by that shop.
   - Check: importing 5 swatches creates 5 catalogue yarns with distinct numbers.
   - Commit: `feat: import catalogue from swatch screenshot`
 - [ ] **9.4 Match art colours to yarns.**

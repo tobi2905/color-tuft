@@ -26,10 +26,14 @@ export function photoSampleRadius(photo: Size): number {
   return Math.max(3, Math.round(Math.min(photo.width, photo.height) / 100))
 }
 
-/** The yarn colour code at a pixel of the photo, or null if that spot is transparent. */
-export function sampleHex(photo: ImageGrid, at: { x: number; y: number }): string | null {
+/** The colour code at a pixel of the photo, or null if that spot is transparent. */
+export function sampleHex(
+  photo: ImageGrid,
+  at: { x: number; y: number },
+  radiusPx = photoSampleRadius(photo),
+): string | null {
   try {
-    return rgbToHex(oklabToSrgb(sampleColour(photo, at, photoSampleRadius(photo))))
+    return rgbToHex(oklabToSrgb(sampleColour(photo, at, radiusPx)))
   } catch {
     return null
   }

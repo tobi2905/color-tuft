@@ -589,7 +589,7 @@ button.link {
 }
 
 .yarns {
-  max-width: 48rem;
+  max-width: 60rem;
 }
 
 .tabs {
@@ -663,7 +663,8 @@ button.link {
   margin-top: 0.75rem;
 }
 
-.form-actions button[type='submit'] {
+.form-actions button[type='submit'],
+.form-actions button.primary {
   background: #1d1d1f;
   border-color: #1d1d1f;
   color: #fff;
@@ -741,4 +742,78 @@ button.link {
   display: grid;
   gap: 1rem;
   max-width: 36rem;
+}
+
+.form-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.swatch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+.swatch-layout .photo-canvas {
+  max-height: 36rem;
+  margin-top: 0;
+}
+
+.swatch-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 36rem;
+  overflow-y: auto;
+}
+
+.swatch-rows li {
+  display: grid;
+  grid-template-columns: 1.6rem 1.6rem minmax(0, 1fr) 5rem auto;
+  gap: 0.4rem;
+  align-items: start;
+  padding: 0.25rem 0;
+}
+
+.swatch-rows .palette-number,
+.swatch-rows .swatch,
+.swatch-rows button {
+  margin-top: 0.3rem;
+}
+
+.swatch-rows button {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b6964;
+}
+
+.swatch-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.swatch-tools .hint {
+  margin: 0;
+}
+
+.swatch-tools button {
+  white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #c9c6be;
+  border-radius: 0.4rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.swatch-tools button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
