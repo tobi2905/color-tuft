@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Yarn } from '../../core/types'
 import { BlobImage } from '../BlobImage'
-import { useYarns } from '../store/yarnStore'
+import { useYarns, yarnStore } from '../store/yarnStore'
+import { parseDecimal } from '../validation'
 import { SwatchImport } from './SwatchImport'
 import { YarnForm } from './YarnForm'
 
@@ -20,12 +21,12 @@ export function YarnList() {
   const addYarn = useYarns((s) => s.addYarn)
   const updateYarn = useYarns((s) => s.updateYarn)
   const removeYarn = useYarns((s) => s.removeYarn)
-  const moveToStock = useYarns((s) => s.moveToStock)
+  const addToStock = useYarns((s) => s.addToStock)
   const [list, setList] = useState<Yarn['list']>('stock')
   // 'new' = the add form is open; 'import' = the colour chart import; an id = that yarn is
   // being edited.
   const [editing, setEditing] = useState<string | null>(null)
-  // What the last import added, shown until something else happens.
+  // What the last import or Add to stock did, shown until something else happens.
   const [note, setNote] = useState<string | null>(null)
   const tab = TABS.find((t) => t.list === list)!
   const shown = yarns.filter((y) => y.list === list)
@@ -91,7 +92,21 @@ export function YarnList() {
                 yarn={y}
                 onEdit={() => open(y.id)}
                 onRemove={() => removeYarn(y.id)}
-                onMoveToStock={list === 'catalogue' ? () => moveToStock(y.id) : undefined}
+                stockCopy={yarns.find((s) => s.list === 'stock' && s.fromCatalogue === y.id)}
+                onAddToStock={
+                  list === 'catalogue'
+                    ? (grams) => {
+                        const stockId = addToStock(y.id, grams)
+                        const now = yarnStore.getState().yarns.find((s) => s.id === stockId)
+                        setNote(
+                          `Added ${grams === undefined ? '' : `${grams} g of `}${y.name} to stock` +
+                            (now?.gramsOnHand !== undefined
+                              ? ` (${now.gramsOnHand} g on hand).`
+                              : '.'),
+                        )
+                      }
+                    : undefined
+                }
               />
             ),
           )}
@@ -132,21 +147,32 @@ export function YarnList() {
 
 function YarnRow({
   yarn,
+  stockCopy,
   onEdit,
   onRemove,
-  onMoveToStock,
+  onAddToStock,
 }: {
   yarn: Yarn
+  /** Catalogue yarns: the stock yarn bought from it, if any. */
+  stockCopy?: Yarn
   onEdit(): void
   onRemove(): void
-  onMoveToStock?(): void
+  /** Catalogue yarns: buy it, with the grams bought (undefined: not entered). */
+  onAddToStock?(grams?: number): void
 }) {
+  // Grams bought; a cone by default, the usual amount.
+  const [grams, setGrams] = useState(yarn.coneWeightG === undefined ? '' : String(yarn.coneWeightG))
+  const parsed = grams.trim() === '' ? undefined : parseDecimal(grams)
+  const gramsValid = parsed === undefined || (parsed !== null && parsed > 0)
   const details = [
     yarn.list === 'stock' && yarn.gramsOnHand !== undefined
       ? `${yarn.gramsOnHand} g on hand`
       : null,
     yarn.coneWeightG !== undefined ? `${yarn.coneWeightG} g cones` : null,
     yarn.shop ?? null,
+    stockCopy
+      ? `in stock${stockCopy.gramsOnHand !== undefined ? `: ${stockCopy.gramsOnHand} g` : ''}`
+      : null,
   ].filter((d) => d !== null)
   return (
     <li className="yarn-row">
@@ -161,10 +187,28 @@ function YarnRow({
       <code>{yarn.hex}</code>
       <span className="hint">{details.join(' · ')}</span>
       <span className="yarn-actions">
-        {onMoveToStock && (
-          <button type="button" onClick={onMoveToStock} title="You bought it: move it to Stock">
-            Move to stock
-          </button>
+        {onAddToStock && (
+          <>
+            <label className="grams-input">
+              <input
+                inputMode="decimal"
+                value={grams}
+                placeholder="g"
+                aria-label={`Grams of ${yarn.name} bought`}
+                aria-invalid={!gramsValid}
+                onChange={(e) => setGrams(e.target.value)}
+              />
+              g
+            </label>
+            <button
+              type="button"
+              disabled={!gramsValid}
+              onClick={() => onAddToStock(parsed ?? undefined)}
+              title="You bought it: add it to Stock (it stays in the catalogue)"
+            >
+              Add to stock
+            </button>
+          </>
         )}
         <button type="button" onClick={onEdit}>
           Edit

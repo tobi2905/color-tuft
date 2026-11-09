@@ -368,15 +368,15 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
 
 - [X] **9.1 Yarn lists.**
   - Files: `src/ui/store/yarnStore.ts`, `src/ui/yarn/YarnList.tsx`, `src/ui/yarn/YarnForm.tsx`, `test/ui/yarnStore.test.ts`.
-  - Builds: store with `addYarn`, `updateYarn`, `removeYarn`, `moveToStock(id)`; form with colour picker, name, number, hex code, grams on hand, cone weight, shop; tabs Stock and Catalogue. The lists sit on the Yarn step, which is reachable without an image.
-  - Tests: adding then removing leaves the list unchanged; `moveToStock` changes only `list`.
+  - Builds: store with `addYarn`, `updateYarn`, `removeYarn`, `addToStock(id, grams?)` (copies a catalogue yarn into stock, where it remembers its source in `fromCatalogue`, and leaves it in the catalogue; buying it again tops up the copy's grams; catalogue rows have a grams field, a cone by default, and an Add to stock button); form with colour picker, name, number, hex code, grams on hand, cone weight, shop; tabs Stock and Catalogue. The lists sit on the Yarn step, which is reachable without an image.
+  - Tests: adding then removing leaves the list unchanged; `addToStock` keeps the catalogue yarn and tops up an existing stock copy.
   - Commit: `feat(ui): yarn stock and catalogue`
 - [X] **9.2 Sample colour from a photo.**
   - Files: `src/ui/yarn/PhotoSampler.tsx` (`sampleColour` and its test already exist from 6.6).
   - Builds: `sampleColour(img: ImageGrid, at: { x: number; y: number }, radiusPx: number): OKLab`, the per-channel median in OKLab, so highlights and shadows on the cone don't skew it. UI: upload a photo, click the cone, name the yarn. Optionally a small photo is kept (a 128 px JPEG of a square a quarter of the photo's short side across, around the click) as the yarn's `photo` and shown in the list; switched in a new Settings screen (header button, `settingsStore`), on by default.
   - Tests: a noisy patch with 10% white highlight pixels returns within deltaE 2 of the true colour.
   - Commit: `feat: yarn colour from photo`
-- [ ] **9.3 Swatch screenshot import.**
+- [X] **9.3 Swatch screenshot import.**
   - Files: `src/ui/yarn/SwatchImport.tsx`, `src/ui/yarn/swatchRows.ts` (checks and conversion), `src/ui/yarn/ClickableImage.tsx` (shared with the photo sampler), `test/ui/swatchRows.test.ts`.
   - Builds: upload a shop's colour chart, click swatches one after another (each uses `sampleColour`), type a name and number for each, save all to Catalogue with the shop name. Each swatch gets a suggested name (`colourName` in `src/core/color/name.ts`: "Red", "Dark blue", "Beige"…), and "Number them" fills empty numbers with the lowest ones not used by that shop.
   - Check: importing 5 swatches creates 5 catalogue yarns with distinct numbers.

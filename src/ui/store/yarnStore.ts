@@ -12,8 +12,12 @@ export type YarnActions = {
   /** Changes the given fields; a field set to undefined is removed. */
   updateYarn(id: string, change: YarnChange): void
   removeYarn(id: string): void
-  /** A catalogue yarn that was bought: same yarn, now in stock. */
-  moveToStock(id: string): void
+  /**
+   * A catalogue yarn that was bought: copies it into stock with `grams` on hand (it stays in the
+   * catalogue). Bought again, its stock copy is topped up instead. Returns the stock yarn's id,
+   * or null if `id` is not a catalogue yarn.
+   */
+  addToStock(id: string, grams?: number): string | null
 }
 
 /**
@@ -34,7 +38,23 @@ export function createYarnStore() {
       },
       updateYarn: (id, c) => change(id, (y) => withoutUndefined({ ...y, ...c, id })),
       removeYarn: (id) => set({ yarns: get().yarns.filter((y) => y.id !== id) }),
-      moveToStock: (id) => change(id, (y) => ({ ...y, list: 'stock' })),
+      addToStock(id, grams) {
+        const source = get().yarns.find((y) => y.id === id && y.list === 'catalogue')
+        if (!source) return null
+        const copy = get().yarns.find((y) => y.list === 'stock' && y.fromCatalogue === id)
+        if (copy) {
+          if (grams !== undefined)
+            change(copy.id, (y) => ({ ...y, gramsOnHand: (y.gramsOnHand ?? 0) + grams }))
+          return copy.id
+        }
+        const { id: _, ...yarn } = source
+        return get().addYarn({
+          ...yarn,
+          list: 'stock',
+          fromCatalogue: id,
+          ...(grams !== undefined ? { gramsOnHand: grams } : {}),
+        })
+      },
     }
   })
 }

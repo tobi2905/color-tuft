@@ -817,3 +817,31 @@ button.link {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.grams-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6b6964;
+}
+
+.grams-input input {
+  width: 4.5rem;
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #c9c6be;
+  border-radius: 0.4rem;
+}
+
+.grams-input input[aria-invalid='true'] {
+  border-color: #b3261e;
+}
+
+.yarn-actions {
+  align-items: center;
+}
+
+.yarn-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

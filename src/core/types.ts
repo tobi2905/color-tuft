@@ -35,6 +35,9 @@ export type Yarn = {
   gramsOnHand?: number
   coneWeightG?: number
   shop?: string
+  /** A stock yarn bought from the catalogue: the catalogue yarn's id, so buying it again tops
+   *  up this one instead of adding a copy. */
+  fromCatalogue?: string
 }
 
 export type Calibration = {
