@@ -1,20 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ImageGrid } from '../../core/types'
+import { cropToBlob } from '../../render/cropToBlob'
 import { loadImageFile } from '../../render/loadImage'
-import { photoPixelAt, photoSampleRadius, sampleHex } from './photoSample'
+import { photoCropBox, photoPixelAt, photoSampleRadius, sampleHex } from './photoSample'
 
 type Props = {
   /** Called with the colour code each time a spot is clicked. */
   onSample(hex: string): void
+  /** If given: called with a small crop around each clicked spot, to keep as the yarn's photo. */
+  onCrop?(photo: Blob): void
   onClose(): void
 }
 
 /** Take a yarn's colour from a photo: upload a photo of the cone, click on the yarn. */
-export function PhotoSampler({ onSample, onClose }: Props) {
+export function PhotoSampler({ onSample, onCrop, onClose }: Props) {
   const [photo, setPhoto] = useState<ImageGrid | null>(null)
   const [spot, setSpot] = useState<{ x: number; y: number } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const ref = useRef<HTMLCanvasElement>(null)
+  // Cropping takes a moment; only the crop of the latest click is kept.
+  const lastClick = useRef(0)
 
   // Draw the photo, and a ring showing the patch that was sampled.
   useEffect(() => {
@@ -67,6 +72,12 @@ export function PhotoSampler({ onSample, onClose }: Props) {
     setMessage(null)
     setSpot(at)
     onSample(hex)
+    if (onCrop) {
+      const click = ++lastClick.current
+      void cropToBlob(photo, photoCropBox(photo, at)).then((blob) => {
+        if (click === lastClick.current) onCrop(blob)
+      })
+    }
   }
 
   return (

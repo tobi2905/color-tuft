@@ -371,9 +371,9 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Builds: store with `addYarn`, `updateYarn`, `removeYarn`, `moveToStock(id)`; form with colour picker, name, number, hex code, grams on hand, cone weight, shop; tabs Stock and Catalogue. The lists sit on the Yarn step, which is reachable without an image.
   - Tests: adding then removing leaves the list unchanged; `moveToStock` changes only `list`.
   - Commit: `feat(ui): yarn stock and catalogue`
-- [ ] **9.2 Sample colour from a photo.**
+- [X] **9.2 Sample colour from a photo.**
   - Files: `src/ui/yarn/PhotoSampler.tsx` (`sampleColour` and its test already exist from 6.6).
-  - Builds: `sampleColour(img: ImageGrid, at: { x: number; y: number }, radiusPx: number): OKLab`, the per-channel median in OKLab, so highlights and shadows on the cone don't skew it. UI: upload a photo, click the cone, name the yarn.
+  - Builds: `sampleColour(img: ImageGrid, at: { x: number; y: number }, radiusPx: number): OKLab`, the per-channel median in OKLab, so highlights and shadows on the cone don't skew it. UI: upload a photo, click the cone, name the yarn. Optionally a small photo is kept (a 128 px JPEG of a square a quarter of the photo's short side across, around the click) as the yarn's `photo` and shown in the list; switched in a new Settings screen (header button, `settingsStore`), on by default.
   - Tests: a noisy patch with 10% white highlight pixels returns within deltaE 2 of the true colour.
   - Commit: `feat: yarn colour from photo`
 - [ ] **9.3 Swatch screenshot import.**
@@ -453,12 +453,12 @@ Approach: borders are first traced along the cracks between pixels (a staircase)
   - Commit: `feat(storage): .tuft file format`
 - [ ] **11.2 Browser storage and autosave.**
   - Files: `src/storage/db.ts`, `src/storage/autosave.ts`, `test/storage/autosave.test.ts`.
-  - Builds: IndexedDB through `idb` with stores `projects`, `yarns`, `calibrations`; autosave debounced to 1 s after the last change; `navigator.storage.persist()` requested on the first save; `navigator.storage.estimate()` checked after each save, warning above 80% with a prompt to save a `.tuft` file.
+  - Builds: IndexedDB through `idb` with stores `projects`, `yarns`, `calibrations`, `settings`; autosave debounced to 1 s after the last change; `navigator.storage.persist()` requested on the first save; `navigator.storage.estimate()` checked after each save, warning above 80% with a prompt to save a `.tuft` file.
   - Tests (with `fake-indexeddb`): 5 changes within 1 s cause one write; a saved project loads back equal.
   - Commit: `feat(storage): autosave in IndexedDB`
 - [ ] **11.3 Save and open files; yarn import and export.**
   - Files: `src/ui/files/FileMenu.tsx`, `src/storage/yarnFile.ts`, `test/storage/yarnFile.test.ts`.
-  - Builds: Save downloads `<project name>.tuft`; Open uses a file input; yarn lists export and import as JSON with `formatVersion`. Importing skips yarns with an id that already exists and reports how many were added.
+  - Builds: Save downloads `<project name>.tuft`; Open uses a file input; yarn lists export and import as JSON with `formatVersion` (yarn photos as base64 data URLs). Importing skips yarns with an id that already exists and reports how many were added.
   - Tests: export then import into an empty list gives the same yarns; importing twice adds nothing the second time.
   - Commit: `feat: save, open and yarn import/export`
 - [ ] **11.4 Linked folder (Chrome and Edge).**

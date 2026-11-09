@@ -2,7 +2,8 @@ import { STEP_LABELS } from './stepLabels'
 import { STEPS, type Step } from './store/projectStore'
 
 type Props = {
-  current: Step
+  /** The step shown, or null when another screen (Settings) is open. */
+  current: Step | null
   available: Step[]
   onSelect(step: Step): void
 }

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { photoPixelAt, photoSampleRadius, sampleHex } from '../../src/ui/yarn/photoSample'
+import {
+  photoCropBox,
+  photoPixelAt,
+  photoSampleRadius,
+  sampleHex,
+} from '../../src/ui/yarn/photoSample'
 
 const box = { left: 100, top: 50, width: 400, height: 300 }
 const photo = { width: 800, height: 600 }
@@ -31,5 +36,14 @@ describe('photo sampling', () => {
   it('gives null where the photo is transparent', () => {
     const data = new Uint8ClampedArray(20 * 20 * 4) // all alpha 0
     expect(sampleHex({ width: 20, height: 20, data }, { x: 10, y: 10 })).toBeNull()
+  })
+
+  it('crops a square a quarter of the photo across, centred on the click', () => {
+    expect(photoCropBox(photo, { x: 400, y: 300 })).toEqual({ x: 325, y: 225, size: 150 })
+  })
+
+  it('moves the crop inside the photo near its edges', () => {
+    expect(photoCropBox(photo, { x: 10, y: 590 })).toEqual({ x: 0, y: 450, size: 150 })
+    expect(photoCropBox(photo, { x: 799, y: 0 })).toEqual({ x: 650, y: 0, size: 150 })
   })
 })

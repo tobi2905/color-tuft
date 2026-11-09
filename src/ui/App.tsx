@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { SettingsScreen } from './SettingsScreen'
 import { Stepper } from './Stepper'
 import { usePipelineSync } from './hooks/usePipelineSync'
 import { useProjectorBroadcast } from './projector/useProjectorBroadcast'
@@ -25,6 +27,8 @@ export default function App() {
   const step = useProject((s) => s.step)
   const setStep = useProject((s) => s.setStep)
   const available = availableSteps({ source, result, shape })
+  // Settings is a screen of its own, outside the six steps; choosing a step leaves it.
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { running, error } = usePipelineSync()
   useProjectorBroadcast()
 
@@ -32,10 +36,25 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>Color Tuft</h1>
-        <Stepper current={step} available={available} onSelect={setStep} />
+        <Stepper
+          current={settingsOpen ? null : step}
+          available={available}
+          onSelect={(s) => {
+            setStep(s)
+            setSettingsOpen(false)
+          }}
+        />
         <p className="status" role="status">
           {running ? 'Working…' : ''}
         </p>
+        <button
+          type="button"
+          className="settings-button"
+          aria-pressed={settingsOpen}
+          onClick={() => setSettingsOpen(!settingsOpen)}
+        >
+          Settings
+        </button>
       </header>
       {error && (
         <p className="error banner" role="alert">
@@ -43,8 +62,10 @@ export default function App() {
         </p>
       )}
       <main className="app-main">
-        <h2>{STEP_LABELS[step]}</h2>
-        {step === 'setup' ? (
+        <h2>{settingsOpen ? 'Settings' : STEP_LABELS[step]}</h2>
+        {settingsOpen ? (
+          <SettingsScreen />
+        ) : step === 'setup' ? (
           <SetupStep />
         ) : step === 'colours' ? (
           <ColoursStep />

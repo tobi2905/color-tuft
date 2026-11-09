@@ -34,3 +34,17 @@ export function sampleHex(photo: ImageGrid, at: { x: number; y: number }): strin
     return null
   }
 }
+
+/**
+ * The square kept as the yarn's photo: a quarter of the photo's short side across, centred on
+ * the click but moved inside the photo near its edges. In photo pixels.
+ */
+export function photoCropBox(
+  photo: Size,
+  at: { x: number; y: number },
+): { x: number; y: number; size: number } {
+  const size = Math.round(Math.min(photo.width, photo.height) / 4)
+  const place = (centre: number, length: number) =>
+    Math.min(Math.max(0, Math.round(centre - size / 2)), length - size)
+  return { x: place(at.x, photo.width), y: place(at.y, photo.height), size }
+}

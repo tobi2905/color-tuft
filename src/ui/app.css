@@ -622,7 +622,7 @@ button.link {
 
 .yarn-row {
   display: grid;
-  grid-template-columns: 1.6rem minmax(8rem, 1fr) 4.5rem minmax(0, 1.2fr) auto;
+  grid-template-columns: 4.4rem minmax(8rem, 1fr) 4.5rem minmax(0, 1.2fr) auto;
   gap: 0.75rem;
   align-items: center;
   padding: 0.4rem;
@@ -695,4 +695,50 @@ button.link {
   max-height: 24rem;
   margin-top: 0.75rem;
   cursor: crosshair;
+}
+
+.yarn-look {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.yarn-photo {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 0.4rem;
+  object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.yarn-photo.small {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.3rem;
+}
+
+.yarn-photo-field {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.settings-button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #c9c6be;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.settings-button[aria-pressed='true'] {
+  border-color: #1d1d1f;
+  font-weight: 600;
+}
+
+.settings-screen {
+  display: grid;
+  gap: 1rem;
+  max-width: 36rem;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Yarn } from '../../core/types'
+import { BlobImage } from '../BlobImage'
 import { useYarns } from '../store/yarnStore'
 import { YarnForm } from './YarnForm'
 
@@ -61,6 +62,7 @@ export function YarnList() {
                       gramsOnHand: undefined,
                       coneWeightG: undefined,
                       shop: undefined,
+                      photo: undefined,
                       ...change,
                     })
                     setEditing(null)
@@ -120,7 +122,10 @@ function YarnRow({
   ].filter((d) => d !== null)
   return (
     <li className="yarn-row">
-      <span className="swatch" style={{ background: yarn.hex }} />
+      <span className="yarn-look">
+        <span className="swatch" style={{ background: yarn.hex }} />
+        {yarn.photo && <BlobImage className="yarn-photo small" blob={yarn.photo} alt="" />}
+      </span>
       <span className="yarn-name">
         {yarn.number && <span className="palette-number">{yarn.number}</span>}
         {yarn.name}

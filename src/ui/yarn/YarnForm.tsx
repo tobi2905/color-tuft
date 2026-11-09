@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Yarn } from '../../core/types'
+import { BlobImage } from '../BlobImage'
+import { useSettings } from '../store/settingsStore'
 import { PhotoSampler } from './PhotoSampler'
 import {
   type YarnDraft,
@@ -27,6 +29,9 @@ export function YarnForm({ list, yarn, onSave, onCancel }: Props) {
   // Errors show once the user has tried to save, not while they are still typing.
   const [tried, setTried] = useState(false)
   const [fromPhoto, setFromPhoto] = useState(false)
+  // The yarn's photo is a Blob, so it is kept beside the text fields rather than in the draft.
+  const [photo, setPhoto] = useState<Blob | undefined>(yarn?.photo)
+  const keepPhotos = useSettings((s) => s.keepYarnPhotos)
   const errors = yarnDraftErrors(draft)
   const valid = Object.values(errors).every((e) => e === null)
   const shown = (key: keyof typeof errors) => (tried ? errors[key] : null)
@@ -34,7 +39,7 @@ export function YarnForm({ list, yarn, onSave, onCancel }: Props) {
 
   function save() {
     setTried(true)
-    if (valid) onSave(draftToYarn(draft, list))
+    if (valid) onSave({ ...draftToYarn(draft, list), ...(photo ? { photo } : {}) })
   }
 
   const text = (key: keyof YarnDraft, label: string, error: string | null = null) => (
@@ -83,7 +88,19 @@ export function YarnForm({ list, yarn, onSave, onCancel }: Props) {
         )}
       </div>
       {fromPhoto && (
-        <PhotoSampler onSample={(hex) => edit({ hex })} onClose={() => setFromPhoto(false)} />
+        <PhotoSampler
+          onSample={(hex) => edit({ hex })}
+          onCrop={keepPhotos ? setPhoto : undefined}
+          onClose={() => setFromPhoto(false)}
+        />
+      )}
+      {photo && (
+        <div className="yarn-photo-field">
+          <BlobImage className="yarn-photo" blob={photo} alt="Photo of the yarn" />
+          <button type="button" onClick={() => setPhoto(undefined)}>
+            Remove photo
+          </button>
+        </div>
       )}
       <div className="field-row">
         {text('name', 'Name', shown('name'))}
